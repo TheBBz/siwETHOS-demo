@@ -1,0 +1,346 @@
+@import "tailwindcss";
+
+/**
+ * Ethos Network Brand Colors
+ * 
+ * Primary: Ethos Indigo #1F21B6 (deep purple-blue)
+ * Primary Hover: #4046C2 (lighter indigo)
+ * Background: Off-Black #1F2126
+ * Surface: Raised #323438
+ * Text: Off-White #C1C0B6
+ */
+
+:root {
+  /* Ethos brand colors - ACTUAL brand indigo */
+  --ethos-primary: #1F21B6;
+  --ethos-primary-hover: #4046C2;
+  --ethos-primary-light: #656ECF;
+  
+  /* Secondary brand colors */
+  --ethos-secondary-1: #FF5A23; /* Orange */
+  --ethos-secondary-2: #13C2C2; /* Teal/Cyan */
+  --ethos-secondary-3: #1677FF; /* Bright Blue */
+  --ethos-secondary-4: #127F31; /* Green */
+  
+  /* Dark theme (default) */
+  --background: #0D0E12;
+  --background-alt: #1F2126;
+  --foreground: #C1C0B6; /* Off-White */
+  --surface: #1A1B20;
+  --surface-hover: #252730;
+  --border: #2A2C35;
+  --muted: #6B6B6B; /* Text Tertiary */
+  
+  /* Text colors */
+  --text-primary: #FFFFFF;
+  --text-secondary: #9CA3AF;
+  --text-tertiary: #6B7280;
+  
+  /* Semantic colors */
+  --error: #EF4444;
+  --warning: #F59E0B;
+  --success: #10B981;
+  
+  /* Glow effects */
+  --glow-primary: rgba(31, 33, 182, 0.5);
+  --glow-secondary: rgba(19, 194, 194, 0.3);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-alt: var(--background-alt);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--ethos-primary);
+  --color-primary-hover: var(--ethos-primary-hover);
+  --color-primary-light: var(--ethos-primary-light);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  
+  --color-glow-primary: var(--glow-primary);
+  --color-glow-secondary: var(--glow-secondary);
+  
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Force dark mode - Ethos brand uses dark theme */
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hero gradient background */
+.hero-gradient {
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(31, 33, 182, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(19, 194, 194, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(127, 81, 185, 0.15) 0%, transparent 50%),
+    var(--background);
+}
+
+/* Animated gradient orb */
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(31, 33, 182, 0.4) 0%, transparent 70%);
+  filter: blur(80px);
+  opacity: 0.6;
+  animation: float 20s ease-in-out infinite;
+}
+
+.gradient-orb:nth-child(2) {
+  background: radial-gradient(circle, rgba(19, 194, 194, 0.3) 0%, transparent 70%);
+}
+
+.gradient-orb:nth-child(3) {
+  background: radial-gradient(circle, rgba(127, 81, 185, 0.25) 0%, transparent 70%);
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(10%, 10%) scale(1.1); }
+  50% { transform: translate(-5%, 20%) scale(0.95); }
+  75% { transform: translate(-10%, -10%) scale(1.05); }
+}
+
+/* Glass morphism card */
+.glass-card {
+  background: rgba(26, 27, 32, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+}
+
+/* Glowing border effect */
+.glow-border {
+  position: relative;
+}
+
+.glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--ethos-primary), var(--ethos-secondary-2), var(--ethos-primary));
+  background-size: 300% 300%;
+  animation: gradient-shift 8s ease infinite;
+  z-index: -1;
+  opacity: 0.5;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Primary button with glow */
+.btn-primary {
+  background: linear-gradient(135deg, var(--ethos-primary) 0%, var(--ethos-primary-hover) 100%);
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 0.875rem 2rem;
+  border-radius: 0.875rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(31, 33, 182, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+  transform: translateX(-100%);
+  transition: transform 0.5s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(31, 33, 182, 0.6);
+}
+
+.btn-primary:hover::before {
+  transform: translateX(100%);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Secondary button */
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+  padding: 0.875rem 2rem;
+  border-radius: 0.875rem;
+  transition: all 0.3s;
+  backdrop-filter: blur(10px);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Feature card with hover effect */
+.feature-card {
+  background: rgba(26, 27, 32, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.25rem;
+  padding: 2rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.feature-card:hover {
+  background: rgba(26, 27, 32, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-4px);
+}
+
+.feature-card:hover::before {
+  opacity: 1;
+}
+
+/* Icon container with gradient */
+.icon-gradient {
+  background: linear-gradient(135deg, var(--ethos-primary) 0%, var(--ethos-secondary-2) 100%);
+  border-radius: 0.875rem;
+  padding: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Text gradient */
+.text-gradient {
+  background: linear-gradient(135deg, #FFFFFF 0%, var(--foreground) 50%, var(--ethos-primary-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Shimmer effect for loading states */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.05) 50%,
+    rgba(255,255,255,0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Pulse animation for status indicators */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.9); }
+}
+
+/* Fade in animation */
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Accent colors */
+.text-accent-teal {
+  color: var(--ethos-secondary-2);
+}
+
+/* Code block styling */
+.code-block {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+/* Focus states for accessibility */
+:focus-visible {
+  outline: 2px solid var(--ethos-primary);
+  outline-offset: 2px;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--ethos-primary);
+  color: #FFFFFF;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-hover);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
