@@ -1,0 +1,17 @@
+{
+  "name": "Sign in with Ethos",
+  "short_name": "Ethos Auth",
+  "description": "Decentralized, secure, reputation-aware authentication using Sign-In with Ethereum",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1F2125",
+  "theme_color": "#1F2125",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
