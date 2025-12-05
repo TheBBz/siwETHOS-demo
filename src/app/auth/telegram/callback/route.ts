@@ -26,9 +26,12 @@ interface TelegramAuthData {
 interface EthosProfile {
   id: number;
   username: string | null;
+  displayName?: string | null;
+  avatarUrl?: string | null;
   score: { value: number };
   status: string;
   attestations?: { service: string; account: string }[];
+  links?: { profile?: string };
 }
 
 export async function GET(request: NextRequest) {
@@ -69,7 +72,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Look up Ethos profile by Telegram
-    const ethosProfile = await lookupEthosProfile('telegram', authData.id);
+    const ethosProfile = await lookupEthosProfile('telegram', authData.id, authData.username);
 
     if (!ethosProfile) {
       return redirectWithError(
@@ -93,14 +96,15 @@ export async function GET(request: NextRequest) {
 
     // Generate JWT access token
     const name = [authData.first_name, authData.last_name].filter(Boolean).join(' ');
-    const profileUrl = `https://app.ethos.network/profile/telegram/${ethosProfile.username || ethosProfile.id}`;
+    const profileUrl = ethosProfile.links?.profile || `https://app.ethos.network/profile/telegram/${ethosProfile.username || ethosProfile.id}`;
     
     // Use Ethos profile avatar if available, fallback to Telegram photo
-    const avatarUrl = (ethosProfile as { avatar?: string }).avatar || authData.photo_url || null;
+    const avatarUrl = ethosProfile.avatarUrl || authData.photo_url || null;
+    const displayName = ethosProfile.displayName || ethosProfile.username || name;
     
     const accessToken = await new SignJWT({
       sub: `ethos:${ethosProfile.id}`,
-      name: (ethosProfile as { name?: string }).name || name,
+      name: displayName,
       picture: avatarUrl,
       ethos_profile_id: ethosProfile.id,
       ethos_username: ethosProfile.username,
@@ -109,6 +113,7 @@ export async function GET(request: NextRequest) {
       auth_method: 'telegram',
       social_provider: 'telegram',
       social_id: authData.id,
+      profile_url: profileUrl,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -121,7 +126,7 @@ export async function GET(request: NextRequest) {
       expiresIn: 86400,
       user: {
         sub: `ethos:${ethosProfile.id}`,
-        name: (ethosProfile as { name?: string }).name || name,
+        name: displayName,
         picture: avatarUrl,
         profileUrl,
         ethosProfileId: ethosProfile.id,
@@ -173,23 +178,72 @@ function verifyTelegramAuth(authData: TelegramAuthData): boolean {
   return hmac === hash;
 }
 
-async function lookupEthosProfile(service: string, accountId: string): Promise<EthosProfile | null> {
+async function lookupEthosProfile(service: string, accountId: string, username?: string): Promise<EthosProfile | null> {
   try {
-    const response = await fetch(
-      `${ETHOS_API_URL}/api/v1/attestations?service=${service}.org&account=${accountId}`
-    );
+    // Use the v2 API that Discord/Twitter use
+    console.log(`Looking up Ethos profile for ${service}:${accountId}${username ? ` (username: ${username})` : ''}`);
     
-    if (response.ok) {
-      const attestations = await response.json();
-      if (attestations.length > 0 && attestations[0].profileId) {
-        const profileResponse = await fetch(
-          `${ETHOS_API_URL}/api/v1/profiles/${attestations[0].profileId}`
-        );
-        if (profileResponse.ok) {
-          return await profileResponse.json();
+    let response = await fetch(
+      `${ETHOS_API_URL}/api/v2/user/by/${service}/${encodeURIComponent(accountId)}`,
+      { 
+        cache: 'no-store',
+        headers: {
+          'X-Ethos-Client': 'signinwithethos@1.1.0',
+          'Accept': 'application/json',
         }
       }
+    );
+
+    console.log(`Ethos lookup by ID response: ${response.status}`);
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Ethos profile found:', data.username || data.id);
+      return {
+        id: data.profileId || data.id,
+        username: data.username,
+        score: { value: data.score || 0 },
+        status: data.status || 'ACTIVE',
+        attestations: data.attestations,
+        displayName: data.displayName,
+        avatarUrl: data.avatarUrl,
+        links: data.links,
+      };
     }
+
+    // If not found by ID and we have a username, try by username
+    if (response.status === 404 && username) {
+      console.log(`Trying lookup by username: ${username}`);
+      response = await fetch(
+        `${ETHOS_API_URL}/api/v2/user/by/${service}/${encodeURIComponent(username)}`,
+        { 
+          cache: 'no-store',
+          headers: {
+            'X-Ethos-Client': 'signinwithethos@1.1.0',
+            'Accept': 'application/json',
+          }
+        }
+      );
+      
+      console.log(`Ethos lookup by username response: ${response.status}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Ethos profile found by username:', data.username || data.id);
+        return {
+          id: data.profileId || data.id,
+          username: data.username,
+          score: { value: data.score || 0 },
+          status: data.status || 'ACTIVE',
+          attestations: data.attestations,
+          displayName: data.displayName,
+          avatarUrl: data.avatarUrl,
+          links: data.links,
+        };
+      }
+    }
+
+    console.log('No Ethos profile found');
     return null;
   } catch (error) {
     console.error('Ethos lookup error:', error);

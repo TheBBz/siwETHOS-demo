@@ -64,6 +64,8 @@ export interface EthosAuthResult {
 export interface PendingOAuth {
   code: string;
   provider: string;
+  error?: string;
+  errorDescription?: string;
 }
 
 export interface EthosAuthModalProps {

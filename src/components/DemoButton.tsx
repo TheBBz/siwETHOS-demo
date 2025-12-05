@@ -8,15 +8,12 @@
  */
 
 import { useState, useEffect } from 'react';
-import { EthosAuthModal, EthosAuthResult } from './EthosAuthModal';
+import { EthosAuthModal, EthosAuthResult, PendingOAuth } from './EthosAuthModal';
 
 export function DemoButton() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [user, setUser] = useState<EthosAuthResult | null>(null);
-  const [pendingOAuth, setPendingOAuth] = useState<{
-    code: string;
-    provider: string;
-  } | null>(null);
+  const [pendingOAuth, setPendingOAuth] = useState<PendingOAuth | null>(null);
 
   // Check for OAuth callback on mount
   useEffect(() => {
@@ -24,12 +21,28 @@ export function DemoButton() {
     const code = params.get('code');
     const state = params.get('state');
     const error = params.get('error');
+    const errorDescription = params.get('error_description');
 
     if (error) {
       // Handle error - open modal and show error
-      console.error('OAuth error:', error, params.get('error_description'));
+      console.error('OAuth error:', error, errorDescription);
+      
+      // Determine provider from sessionStorage
+      const storedProvider = sessionStorage.getItem('oauth_provider');
+      
+      setPendingOAuth({
+        code: '',
+        provider: storedProvider || 'unknown',
+        error,
+        errorDescription: errorDescription || undefined,
+      });
+      
+      // Open modal to show error
+      setIsModalOpen(true);
+      
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
+      sessionStorage.removeItem('oauth_provider');
       return;
     }
 

@@ -113,7 +113,18 @@ export function EthosAuthModal({
   // Handle pending OAuth callback - run once when we have pendingOAuth
   useEffect(() => {
     if (pendingOAuth && isOpen) {
-      processOAuthCallback(pendingOAuth.code, pendingOAuth.provider);
+      // Check if this is an error response
+      if (pendingOAuth.error) {
+        const errorMessage = pendingOAuth.errorDescription || pendingOAuth.error;
+        setError(errorMessage);
+        setView('error');
+        return;
+      }
+      
+      // Process successful OAuth callback
+      if (pendingOAuth.code) {
+        processOAuthCallback(pendingOAuth.code, pendingOAuth.provider);
+      }
     }
   }, [pendingOAuth, isOpen, processOAuthCallback]);
 
