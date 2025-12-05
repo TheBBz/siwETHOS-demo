@@ -203,7 +203,7 @@ export default async function HomePage() {
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary-light font-bold shrink-0">3</div>
                     <div>
                       <div className="font-medium text-white">Handle Success</div>
-                      <code className="text-sm text-text-tertiary font-mono">onSuccess={(result) =&gt; ...}</code>
+                      <code className="text-sm text-text-tertiary font-mono">{'onSuccess={(result) => ...}'}</code>
                     </div>
                   </div>
                 </div>
@@ -342,7 +342,9 @@ export default async function HomePage() {
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-text-secondary hover:text-white transition-colors group"
             >
-              <span className="text-xl">📚</span>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              </svg>
               <span>Documentation</span>
               <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path d="M7 17L17 7M17 7H7M17 7V17" />
@@ -354,7 +356,9 @@ export default async function HomePage() {
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-text-secondary hover:text-white transition-colors group"
             >
-              <span className="text-xl">⚛️</span>
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14.23 12.004a2.236 2.236 0 0 1-2.235 2.236 2.236 2.236 0 0 1-2.236-2.236 2.236 2.236 0 0 1 2.235-2.236 2.236 2.236 0 0 1 2.236 2.236zm2.648-10.69c-1.346 0-3.107.96-4.888 2.622-1.78-1.653-3.542-2.602-4.887-2.602-.41 0-.783.093-1.106.278-1.375.793-1.683 3.264-.973 6.365C1.98 8.917 0 10.42 0 12.004c0 1.59 1.99 3.097 5.043 4.03-.704 3.113-.39 5.588.988 6.38.32.187.69.275 1.102.275 1.345 0 3.107-.96 4.888-2.624 1.78 1.654 3.542 2.603 4.887 2.603.41 0 .783-.09 1.106-.275 1.374-.792 1.683-3.263.973-6.365C22.02 15.096 24 13.59 24 12.004c0-1.59-1.99-3.097-5.043-4.032.704-3.11.39-5.587-.988-6.38-.318-.184-.688-.277-1.092-.278z"/>
+              </svg>
               <span>React Guide</span>
               <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path d="M7 17L17 7M17 7H7M17 7V17" />
@@ -366,7 +370,9 @@ export default async function HomePage() {
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-text-secondary hover:text-white transition-colors group"
             >
-              <span className="text-xl">💻</span>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+              </svg>
               <span>SDK Reference</span>
               <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path d="M7 17L17 7M17 7H7M17 7V17" />
@@ -378,7 +384,9 @@ export default async function HomePage() {
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-text-secondary hover:text-white transition-colors group"
             >
-              <span className="text-xl">🚀</span>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
+              </svg>
               <span>Self-Hosting</span>
               <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path d="M7 17L17 7M17 7H7M17 7V17" />
