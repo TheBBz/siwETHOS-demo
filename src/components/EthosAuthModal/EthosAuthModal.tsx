@@ -23,11 +23,16 @@ import {
   WalletSelectView,
   WalletProgressView,
   FarcasterQRView,
+  TelegramWidgetView,
   SuccessView,
   ErrorView,
   SocialLoadingView,
   SignOutView,
 } from './views';
+import type { TelegramUser } from './views';
+
+// Telegram bot username from env (will be fetched from API)
+const TELEGRAM_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'siwETHOS_bot';
 
 // ============================================================================
 // Main Component
@@ -437,11 +442,60 @@ export function EthosAuthModal({
   };
 
   const connectTelegram = () => {
-    sessionStorage.setItem('oauth_provider', 'telegram');
-    const state = crypto.randomUUID();
-    const redirectUri = encodeURIComponent(`${window.location.origin}/`);
-    window.location.href = `/auth/telegram?redirect_uri=${redirectUri}&state=${state}`;
+    // Show the inline Telegram widget instead of redirecting
+    setSocialProvider('telegram');
+    setView('telegram-widget');
   };
+
+  // Handle Telegram widget auth callback
+  const handleTelegramAuth = useCallback(async (telegramUser: TelegramUser) => {
+    setView('verifying');
+    setSocialProvider('telegram');
+    
+    try {
+      // Send Telegram auth data to our callback endpoint
+      const response = await fetch('/api/auth/telegram/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: telegramUser.id.toString(),
+          first_name: telegramUser.first_name,
+          last_name: telegramUser.last_name,
+          username: telegramUser.username,
+          photo_url: telegramUser.photo_url,
+          auth_date: telegramUser.auth_date.toString(),
+          hash: telegramUser.hash,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error_description || errorData.error || 'Authentication failed');
+      }
+
+      const data = await response.json();
+      
+      // Process the auth code like other OAuth flows
+      const decoded = JSON.parse(atob(data.code.replace(/-/g, '+').replace(/_/g, '/')));
+      
+      const profileData: EthosProfile = {
+        profileId: decoded.user.ethosProfileId,
+        displayName: decoded.user.name,
+        username: decoded.user.ethosUsername,
+        avatarUrl: decoded.user.picture,
+        score: decoded.user.ethosScore,
+        profileUrl: decoded.user.profileUrl,
+      };
+
+      setProfile(profileData);
+      setView('success');
+      onSuccess?.({ code: data.code, address: '', profile: profileData });
+    } catch (err) {
+      console.error('Telegram auth error:', err);
+      setError(err instanceof Error ? err.message : 'Authentication failed');
+      setView('error');
+    }
+  }, [onSuccess]);
 
   const connectTwitter = () => {
     sessionStorage.setItem('oauth_provider', 'twitter');
@@ -451,7 +505,7 @@ export function EthosAuthModal({
   };
 
   const goBack = useCallback(() => {
-    if (view === 'error' || view === 'connecting' || view === 'wallet-select' || view === 'farcaster-qr') {
+    if (view === 'error' || view === 'connecting' || view === 'wallet-select' || view === 'farcaster-qr' || view === 'telegram-widget') {
       setView('provider-select');
       setSelectedWallet(null);
       setError(null);
@@ -473,12 +527,13 @@ export function EthosAuthModal({
       case 'success': return 'Connected';
       case 'error': return 'Error';
       case 'farcaster-qr': return 'Sign in with Farcaster';
+      case 'telegram-widget': return 'Sign in with Telegram';
       case 'signing-out': return 'Signing Out';
       default: return 'Sign In';
     }
   };
 
-  const showBackButton = view === 'error' || view === 'connecting' || view === 'wallet-select' || view === 'farcaster-qr';
+  const showBackButton = view === 'error' || view === 'connecting' || view === 'wallet-select' || view === 'farcaster-qr' || view === 'telegram-widget';
 
   const modalContent = (
     <div
@@ -548,6 +603,14 @@ export function EthosAuthModal({
             <FarcasterQRView
               qrUrl={farcasterQrUrl}
               deepLink={farcasterDeepLink}
+            />
+          )}
+
+          {view === 'telegram-widget' && (
+            <TelegramWidgetView
+              botUsername={TELEGRAM_BOT_USERNAME}
+              onAuth={handleTelegramAuth}
+              onCancel={goBack}
             />
           )}
 

@@ -11,6 +11,7 @@ export type ModalView =
   | 'success' 
   | 'error' 
   | 'farcaster-qr'
+  | 'telegram-widget'
   | 'discord-loading'
   | 'telegram-loading'
   | 'twitter-loading'
