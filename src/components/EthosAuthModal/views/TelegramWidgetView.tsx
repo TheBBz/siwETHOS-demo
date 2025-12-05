@@ -7,7 +7,6 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { TelegramIcon } from '../icons';
 
 interface TelegramWidgetViewProps {
   botUsername: string;
@@ -114,23 +113,11 @@ export function TelegramWidgetView({
         />
       </div>
 
-      {/* Divider */}
-      <div className="flex items-center gap-3 my-4">
-        <div className="flex-1 border-t border-white/10" />
-        <span className="text-xs text-text-tertiary">or</span>
-        <div className="flex-1 border-t border-white/10" />
-      </div>
-
-      {/* Open in Telegram link */}
-      <a
-        href={`https://t.me/${botUsername}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 text-sm text-[#0088cc] hover:text-[#0099dd] transition-colors"
-      >
-        <TelegramIcon className="w-4 h-4" />
-        Open in Telegram app
-      </a>
+      {/* Info text */}
+      <p className="text-xs text-text-tertiary mt-4 px-4">
+        A popup will open to authenticate with Telegram. 
+        Make sure popups are allowed for this site.
+      </p>
 
       {/* Back button */}
       <button
