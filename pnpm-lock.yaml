@@ -15,8 +15,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       '@thebbz/siwe-ethos-providers':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: ^1.1.1
+        version: 1.1.1
       '@thebbz/siwe-ethos-react':
         specifier: ^1.0.0
         version: 1.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -546,8 +546,8 @@ packages:
   '@tailwindcss/postcss@4.1.17':
     resolution: {integrity: sha512-+nKl9N9mN5uJ+M7dBOOCzINw94MPstNR/GtIhz1fpZysxL/4a+No64jCBD6CPN+bIHWFx3KWuu8XJRrj/572Dw==}
 
-  '@thebbz/siwe-ethos-providers@1.1.0':
-    resolution: {integrity: sha512-h513iZjTkk6gnh/WyR0WeMUXgFs3QbGA5qjQxWKwTxozmKPL5igkG+fdNj8g1kQjoBN1df15Yp8ak687kHb4Eg==}
+  '@thebbz/siwe-ethos-providers@1.1.1':
+    resolution: {integrity: sha512-OSf3UfF9pJwn6POt0vSZ+KbyX+1U0lMpkJdBLvNcbDF4bCiIkOBoJHytYhvn8kT8FtSQvcI1NV7rjIVW083nXA==}
 
   '@thebbz/siwe-ethos-react@1.0.0':
     resolution: {integrity: sha512-I+038LoT1jhgbfC9ULY2tyWYnRerCEgCYkb4oCGBTzO+0kw7DCXpcmRjLe04CLxcsKqCX1FXy6NUjB/qHGYEUg==}
@@ -2549,7 +2549,7 @@ snapshots:
       postcss: 8.5.6
       tailwindcss: 4.1.17
 
-  '@thebbz/siwe-ethos-providers@1.1.0': {}
+  '@thebbz/siwe-ethos-providers@1.1.1': {}
 
   '@thebbz/siwe-ethos-react@1.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
