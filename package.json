@@ -10,11 +10,15 @@
   },
   "dependencies": {
     "@bgd-labs/react-web3-icons": "^1.57.0",
+    "@thebbz/siwe-ethos": "file:/Users/thebbz/signinwithethos/packages/sdk",
     "@thebbz/siwe-ethos-providers": "^0.1.0",
+    "@thebbz/siwe-ethos-react": "file:/Users/thebbz/signinwithethos/packages/react",
+    "@types/qrcode": "^1.5.6",
     "@upstash/redis": "^1.35.7",
     "ioredis": "^5.8.2",
     "jose": "^6.1.2",
     "next": "16.0.7",
+    "qrcode": "^1.5.4",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },

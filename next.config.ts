@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // Transpile local packages to resolve peer dependencies
+  transpilePackages: ['@thebbz/siwe-ethos', '@thebbz/siwe-ethos-react'],
   images: {
     remotePatterns: [
       {

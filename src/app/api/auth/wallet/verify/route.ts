@@ -130,19 +130,25 @@ export async function POST(request: NextRequest) {
 
     const code = await generateAuthCode(authCodeData);
 
-    // Return success with auth code
+    // Return in the format expected by the SDK
+    // The SDK expects access_token format with user object
     return NextResponse.json({
-      success: true,
-      code,
-      address: verifyResult.address,
-      profile: {
-        profileId: ethosUser.profileId,
-        displayName: ethosUser.displayName,
-        username: ethosUser.username,
-        avatarUrl: ethosUser.avatarUrl,
-        score: ethosUser.score,
-        // Use the profile URL from the API (already correctly formatted)
-        profileUrl: ethosUser.links?.profile || null,
+      access_token: code,
+      token_type: 'Bearer',
+      expires_in: 86400,
+      user: {
+        sub: `ethos:${ethosUser.profileId}`,
+        name: ethosUser.displayName,
+        // Use Ethos avatar, not provider avatar
+        picture: ethosUser.avatarUrl,
+        ethos_profile_id: ethosUser.profileId,
+        ethos_username: ethosUser.username,
+        ethos_score: ethosUser.score,
+        ethos_status: ethosUser.status,
+        ethos_attestations: ethosUser.attestations?.map(a => `${a.service}:${a.account}`) || [],
+        wallet_address: verifyResult.address,
+        // Include profile URL for "View profile" link
+        profile_url: ethosUser.links?.profile || `https://ethos.network/u/${ethosUser.username || ethosUser.profileId}`,
       },
     });
   } catch (error) {
