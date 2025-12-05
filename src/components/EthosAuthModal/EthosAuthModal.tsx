@@ -476,7 +476,15 @@ export function EthosAuthModal({
       const data = await response.json();
       
       // Process the auth code like other OAuth flows
-      const decoded = JSON.parse(atob(data.code.replace(/-/g, '+').replace(/_/g, '/')));
+      // Use TextDecoder for proper UTF-8 emoji support
+      const base64 = data.code.replace(/-/g, '+').replace(/_/g, '/');
+      const binaryString = atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const jsonString = new TextDecoder('utf-8').decode(bytes);
+      const decoded = JSON.parse(jsonString);
       
       const profileData: EthosProfile = {
         profileId: decoded.user.ethosProfileId,
