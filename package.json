@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@bgd-labs/react-web3-icons": "^1.57.0",
-    "@thebbz/siwe-ethos": "^1.1.0",
-    "@thebbz/siwe-ethos-providers": "^1.1.1",
+    "@thebbz/siwe-ethos": "^1.2.0",
+    "@thebbz/siwe-ethos-providers": "^1.2.0",
     "@thebbz/siwe-ethos-react": "^1.0.0",
     "@types/qrcode": "^1.5.6",
     "@upstash/redis": "^1.35.7",

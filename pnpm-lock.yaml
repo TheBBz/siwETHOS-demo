@@ -12,11 +12,11 @@ importers:
         specifier: ^1.57.0
         version: 1.57.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@thebbz/siwe-ethos':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: ^1.2.0
+        version: 1.2.0
       '@thebbz/siwe-ethos-providers':
-        specifier: ^1.1.1
-        version: 1.1.1
+        specifier: ^1.2.0
+        version: 1.2.0
       '@thebbz/siwe-ethos-react':
         specifier: ^1.0.0
         version: 1.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -546,8 +546,8 @@ packages:
   '@tailwindcss/postcss@4.1.17':
     resolution: {integrity: sha512-+nKl9N9mN5uJ+M7dBOOCzINw94MPstNR/GtIhz1fpZysxL/4a+No64jCBD6CPN+bIHWFx3KWuu8XJRrj/572Dw==}
 
-  '@thebbz/siwe-ethos-providers@1.1.1':
-    resolution: {integrity: sha512-OSf3UfF9pJwn6POt0vSZ+KbyX+1U0lMpkJdBLvNcbDF4bCiIkOBoJHytYhvn8kT8FtSQvcI1NV7rjIVW083nXA==}
+  '@thebbz/siwe-ethos-providers@1.2.0':
+    resolution: {integrity: sha512-6WdmiKh4ziXKnf3whN1AYlWWxSqVYnsu3axJpwvBxVXs0vaVcRVzqVCgXxMrkyBMPh8zi+IEag5geeq+byI3pQ==}
 
   '@thebbz/siwe-ethos-react@1.0.0':
     resolution: {integrity: sha512-I+038LoT1jhgbfC9ULY2tyWYnRerCEgCYkb4oCGBTzO+0kw7DCXpcmRjLe04CLxcsKqCX1FXy6NUjB/qHGYEUg==}
@@ -555,8 +555,8 @@ packages:
       react: '>=17.0.0'
       react-dom: '>=17.0.0'
 
-  '@thebbz/siwe-ethos@1.1.0':
-    resolution: {integrity: sha512-rEzYHr+HmtzOqL2NbraGr3AOFq4uXvagOgdN6hl0CeXkkYzDPAi1AVO+86+sKUCGLMQVW7QDwtfPf2qwLPKBgw==}
+  '@thebbz/siwe-ethos@1.2.0':
+    resolution: {integrity: sha512-OuVS6an8J94D/J9diKxv2cZ6angRz7SIcwd/h31T1aX8zL/iw1nu3Oq3h9eKsHaZYLMKcJWpacOdv6eeObwqrQ==}
 
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
@@ -2549,7 +2549,7 @@ snapshots:
       postcss: 8.5.6
       tailwindcss: 4.1.17
 
-  '@thebbz/siwe-ethos-providers@1.1.1': {}
+  '@thebbz/siwe-ethos-providers@1.2.0': {}
 
   '@thebbz/siwe-ethos-react@1.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
@@ -2557,7 +2557,9 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  '@thebbz/siwe-ethos@1.1.0': {}
+  '@thebbz/siwe-ethos@1.2.0':
+    dependencies:
+      '@thebbz/siwe-ethos-providers': 1.2.0
 
   '@tybys/wasm-util@0.10.1':
     dependencies:

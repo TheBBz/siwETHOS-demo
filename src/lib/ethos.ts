@@ -2,99 +2,29 @@
  * Ethos API Client
  *
  * Service for interacting with the Ethos Network API.
- * Includes caching to reduce API calls and improve performance.
+ * Uses @thebbz/siwe-ethos-providers package with caching layer.
  */
 
 import { getStorage, STORAGE_KEYS } from './storage';
+import {
+  fetchEthosProfile as fetchProfile,
+  getProfileByAddress as getByAddress,
+  getProfileByTwitter as getByTwitter,
+  getProfileByDiscord as getByDiscord,
+  getProfileByFarcaster as getByFarcaster,
+  getProfileById as getById,
+  getScoreByAddress,
+  EthosProfile,
+  EthosProfileNotFoundError,
+  EthosApiError,
+  EthosLookupType,
+} from '@thebbz/siwe-ethos-providers';
 
-const ETHOS_API_URL = process.env.ETHOS_API_URL || 'https://api.ethos.network';
-const ETHOS_CLIENT_NAME = process.env.ETHOS_CLIENT_NAME || 'signinwithethos@0.1.0';
+// Re-export types from the package
+export type { EthosProfile as EthosUser, EthosLookupType };
+export { EthosProfileNotFoundError, EthosApiError };
+
 const ETHOS_CACHE_TTL = parseInt(process.env.ETHOS_CACHE_TTL || '600', 10); // 10 minutes
-
-/**
- * Ethos user attestation
- */
-export interface EthosAttestation {
-  id: number;
-  hash: string;
-  profileId: number;
-  service: string;
-  account: string;
-  createdAt: number;
-  extra?: {
-    username?: string;
-    url?: string;
-  };
-}
-
-/**
- * Ethos user profile
- */
-export interface EthosUser {
-  id: number;
-  profileId: number;
-  displayName: string;
-  username: string | null;
-  avatarUrl: string | null;
-  description: string | null;
-  score: number;
-  status: 'ACTIVE' | 'INACTIVE' | 'MERGED';
-  userkeys: string[];
-  xpTotal: number;
-  xpStreakDays: number;
-  influenceFactor: number;
-  influenceFactorPercentile: number;
-  links?: {
-    profile?: string;
-    scoreBreakdown?: string;
-  };
-  stats?: {
-    review?: {
-      received?: {
-        negative: number;
-        neutral: number;
-        positive: number;
-      };
-    };
-    vouch?: {
-      given?: {
-        amountWeiTotal: number;
-        count: number;
-      };
-      received?: {
-        amountWeiTotal: number;
-        count: number;
-      };
-    };
-  };
-  attestations?: EthosAttestation[];
-}
-
-/**
- * Error thrown when an Ethos profile is not found
- */
-export class EthosProfileNotFoundError extends Error {
-  constructor(
-    public provider: string,
-    public identifier: string
-  ) {
-    super(`No Ethos profile found for ${provider}:${identifier}`);
-    this.name = 'EthosProfileNotFoundError';
-  }
-}
-
-/**
- * Error thrown when the Ethos API returns an error
- */
-export class EthosApiError extends Error {
-  constructor(
-    public statusCode: number,
-    message: string
-  ) {
-    super(message);
-    this.name = 'EthosApiError';
-  }
-}
 
 /**
  * Generate cache key for an Ethos profile lookup
@@ -105,83 +35,70 @@ function getCacheKey(endpoint: string, identifier: string): string {
 
 /**
  * Fetch an Ethos user profile with caching
+ * Uses the package's fetchEthosProfile under the hood
  */
-async function fetchEthosProfile(
-  endpoint: string,
+async function fetchEthosProfileWithCache(
+  type: EthosLookupType,
   identifier: string
-): Promise<EthosUser> {
+): Promise<EthosProfile> {
   const storage = getStorage();
-  const cacheKey = getCacheKey(endpoint, identifier);
+  const cacheKey = getCacheKey(type, identifier);
 
   // Check cache first
-  const cached = await storage.get<EthosUser>(cacheKey);
+  const cached = await storage.get<EthosProfile>(cacheKey);
   if (cached) {
     return cached;
   }
 
-  // Fetch from Ethos API
-  const url = `${ETHOS_API_URL}/api/v2/user/by/${endpoint}/${encodeURIComponent(identifier)}`;
-
-  const response = await fetch(url, {
-    headers: {
-      'X-Ethos-Client': ETHOS_CLIENT_NAME,
-      Accept: 'application/json',
-    },
-  });
-
-  if (response.status === 404) {
-    throw new EthosProfileNotFoundError(endpoint, identifier);
-  }
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new EthosApiError(
-      response.status,
-      `Ethos API error: ${response.status} - ${errorText}`
-    );
-  }
-
-  const user = (await response.json()) as EthosUser;
+  // Fetch from Ethos API using the package
+  const profile = await fetchProfile(type, identifier);
 
   // Cache the result
-  await storage.set(cacheKey, user, ETHOS_CACHE_TTL);
+  await storage.set(cacheKey, profile, ETHOS_CACHE_TTL);
 
-  return user;
+  return profile;
 }
 
 /**
  * Get Ethos profile by Twitter/X username
  */
-export async function getProfileByTwitter(username: string): Promise<EthosUser> {
-  return fetchEthosProfile('x', username);
+export async function getProfileByTwitter(username: string): Promise<EthosProfile> {
+  return fetchEthosProfileWithCache('x', username);
 }
 
 /**
  * Get Ethos profile by Discord user ID
  */
-export async function getProfileByDiscord(discordId: string): Promise<EthosUser> {
-  return fetchEthosProfile('discord', discordId);
+export async function getProfileByDiscord(discordId: string): Promise<EthosProfile> {
+  return fetchEthosProfileWithCache('discord', discordId);
 }
 
 /**
  * Get Ethos profile by Farcaster FID
  */
-export async function getProfileByFarcaster(fid: string): Promise<EthosUser> {
-  return fetchEthosProfile('farcaster', fid);
+export async function getProfileByFarcaster(fid: string): Promise<EthosProfile> {
+  return fetchEthosProfileWithCache('farcaster', fid);
 }
 
 /**
  * Get Ethos profile by Ethereum address
  */
-export async function getProfileByAddress(address: string): Promise<EthosUser> {
-  return fetchEthosProfile('address', address);
+export async function getProfileByAddress(address: string): Promise<EthosProfile> {
+  return fetchEthosProfileWithCache('address', address);
 }
 
 /**
  * Get Ethos profile by profile ID
  */
-export async function getProfileById(profileId: number): Promise<EthosUser> {
-  return fetchEthosProfile('profile-id', profileId.toString());
+export async function getProfileById(profileId: number): Promise<EthosProfile> {
+  return fetchEthosProfileWithCache('profile-id', profileId.toString());
+}
+
+/**
+ * Get Ethos profile by Telegram user ID
+ */
+export async function getProfileByTelegram(telegramId: string): Promise<EthosProfile> {
+  return fetchEthosProfileWithCache('telegram', telegramId);
 }
 
 /**
@@ -189,11 +106,28 @@ export async function getProfileById(profileId: number): Promise<EthosUser> {
  * This is a general function for fetching profiles by various identifiers
  */
 export async function getProfileByProvider(
-  endpoint: string,
+  endpoint: EthosLookupType,
   identifier: string
-): Promise<EthosUser> {
-  return fetchEthosProfile(endpoint, identifier);
+): Promise<EthosProfile> {
+  return fetchEthosProfileWithCache(endpoint, identifier);
 }
+
+/**
+ * Get score by address (lightweight, no cache)
+ * Returns { score, ok, error?, profile? }
+ */
+export { getScoreByAddress };
+
+/**
+ * Direct access to package functions (no caching)
+ */
+export {
+  getByAddress as fetchProfileByAddress,
+  getByTwitter as fetchProfileByTwitter,
+  getByDiscord as fetchProfileByDiscord,
+  getByFarcaster as fetchProfileByFarcaster,
+  getById as fetchProfileById,
+};
 
 /**
  * Clear cached profile data (for testing or manual refresh)
