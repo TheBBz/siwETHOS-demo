@@ -20,6 +20,20 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  // Rewrites to serve Docusaurus static files
+  async rewrites() {
+    return [
+      {
+        source: '/docs',
+        destination: '/docs/index.html',
+      },
+      {
+        source: '/docs/',
+        destination: '/docs/index.html',
+      },
+    ];
+  },
+
   images: {
     remotePatterns: [
       {
