@@ -4,6 +4,22 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   // Transpile local packages to resolve peer dependencies
   transpilePackages: ['@thebbz/siwe-ethos', '@thebbz/siwe-ethos-react'],
+
+  // Add headers for static docs files
+  async headers() {
+    return [
+      {
+        source: '/docs/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
+
   images: {
     remotePatterns: [
       {

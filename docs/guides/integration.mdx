@@ -1,0 +1,112 @@
+---
+sidebar_position: 3
+---
+
+# Integration Guide
+
+Framework-specific integration guides.
+
+## Next.js
+
+### App Router (Next.js 13+)
+
+```tsx
+// app/layout.tsx
+import '@thebbz/siwe-ethos-react/styles.css';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>{children}</body>
+    </html>
+  );
+}
+
+// app/page.tsx
+'use client';
+
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+
+export default function Page() {
+  // Your component code
+}
+```
+
+### Pages Router
+
+```tsx
+// pages/_app.tsx
+import '@thebbz/siwe-ethos-react/styles.css';
+
+export default function App({ Component, pageProps }) {
+  return <Component {...pageProps} />;
+}
+```
+
+## Vite
+
+```tsx
+// src/main.tsx
+import '@thebbz/siwe-ethos-react/styles.css';
+import { createRoot } from 'react-dom/client';
+import App from './App';
+
+createRoot(document.getElementById('root')!).render(<App />);
+```
+
+## Create React App
+
+```tsx
+// src/index.tsx
+import '@thebbz/siwe-ethos-react/styles.css';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root')!);
+root.render(<App />);
+```
+
+## wagmi Integration
+
+```tsx
+import { WagmiProvider, createConfig } from 'wagmi';
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+
+const config = createConfig({
+  // Your wagmi config
+});
+
+function App() {
+  return (
+    <WagmiProvider config={config}>
+      <YourApp />
+    </WagmiProvider>
+  );
+}
+```
+
+## Server Setup
+
+Example Express.js server for authentication endpoints:
+
+```javascript
+import express from 'express';
+import { verifyWalletSignature } from '@thebbz/siwe-ethos-providers';
+
+const app = express();
+
+app.post('/api/auth/wallet/verify', async (req, res) => {
+  const { message, signature, address } = req.body;
+  
+  const isValid = await verifyWalletSignature(message, signature, address);
+  
+  if (!isValid) {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+  
+  // Create session/JWT
+  const token = createToken(address);
+  
+  res.json({ accessToken: token });
+});
+```

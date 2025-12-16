@@ -1,0 +1,238 @@
+---
+sidebar_position: 3
+---
+
+# EthosAuthModal
+
+Complete authentication modal with wallet and social login support.
+
+## Overview
+
+`EthosAuthModal` is the main component for authentication. It provides a beautiful, animated modal that handles:
+
+- Wallet selection and connection
+- Social authentication (Discord, Twitter, Farcaster, Telegram, GitHub)
+- Error handling and user feedback
+- Recent login history
+- Responsive design for all screen sizes
+
+## Basic Usage
+
+```tsx
+import { useState } from 'react';
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+import '@thebbz/siwe-ethos-react/styles.css';
+
+function App() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleSuccess = (result) => {
+    console.log('Profile:', result.profile);
+    console.log('Provider:', result.provider);
+    setIsOpen(false);
+  };
+
+  return (
+    <>
+      <button onClick={() => setIsOpen(true)}>Sign In</button>
+      
+      <EthosAuthModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSuccess={handleSuccess}
+      />
+    </>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `isOpen` | `boolean` | Yes | Controls modal visibility |
+| `onClose` | `() => void` | Yes | Called when modal should close |
+| `onSuccess` | `(result: EthosAuthResult) => void` | Yes | Called on successful authentication |
+| `baseUrl` | `string` | No | Custom auth server URL |
+| `showProviders` | `string[]` | No | Filter which providers to show |
+
+## Authentication Result
+
+The `onSuccess` callback receives an `EthosAuthResult`:
+
+```typescript
+interface EthosAuthResult {
+  profile: {
+    id: number;
+    address: string;
+    primaryAddress: string;
+    displayName: string | null;
+    username: string | null;
+    description: string | null;
+    avatar: string | null;
+    score: number;
+    profileUrl: string;
+  };
+  provider: 'wallet' | 'farcaster' | 'discord' | 'twitter' | 'telegram' | 'github';
+  providerData?: any;
+}
+```
+
+## Examples
+
+### With Custom Server
+
+```tsx
+<EthosAuthModal
+  isOpen={isOpen}
+  onClose={onClose}
+  onSuccess={onSuccess}
+  baseUrl="https://your-server.com"
+/>
+```
+
+### Filter Providers
+
+Show only wallet authentication:
+
+```tsx
+<EthosAuthModal
+  isOpen={isOpen}
+  onClose={onClose}
+  onSuccess={onSuccess}
+  showProviders={['wallet']}
+/>
+```
+
+Show only social providers:
+
+```tsx
+<EthosAuthModal
+  isOpen={isOpen}
+  onClose={onClose}
+  onSuccess={onSuccess}
+  showProviders={['farcaster', 'discord', 'twitter']}
+/>
+```
+
+### Complete Example
+
+```tsx
+import { useState } from 'react';
+import { EthosAuthModal, type EthosAuthResult } from '@thebbz/siwe-ethos-react';
+
+function AuthExample() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<EthosAuthResult | null>(null);
+
+  const handleSuccess = (result: EthosAuthResult) => {
+    setUser(result);
+    localStorage.setItem('ethos_user', JSON.stringify(result));
+    setIsOpen(false);
+    
+    console.log('Authenticated!');
+    console.log('Display Name:', result.profile.displayName);
+    console.log('Score:', result.profile.score);
+    console.log('Provider:', result.provider);
+  };
+
+  const handleSignOut = () => {
+    setUser(null);
+    localStorage.removeItem('ethos_user');
+  };
+
+  return (
+    <div>
+      {user ? (
+        <div>
+          <img src={user.profile.avatar} alt={user.profile.displayName || 'User'} />
+          <p>{user.profile.displayName || user.profile.username}</p>
+          <p>Score: {user.profile.score}</p>
+          <button onClick={handleSignOut}>Sign Out</button>
+        </div>
+      ) : (
+        <button onClick={() => setIsOpen(true)}>Sign In with Ethos</button>
+      )}
+
+      <EthosAuthModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSuccess={handleSuccess}
+      />
+    </div>
+  );
+}
+```
+
+## Modal Behavior
+
+### Opening
+- Fades in with backdrop
+- Focuses on first interactive element
+- Prevents body scroll
+- Traps keyboard focus
+
+### Closing
+- Click backdrop
+- Press Escape key
+- Click close button
+- Call `onClose()` prop
+
+### Navigation
+- Back button to return to provider selection
+- Smooth transitions between views
+- Loading states during authentication
+
+## Views
+
+The modal has several internal views:
+
+1. **Main Select** - Choose between wallet and social authentication
+2. **Wallet Select** - Choose which wallet to connect
+3. **Social Select** - Choose social provider
+4. **Connecting** - Loading state during authentication
+5. **Success** - Shows user profile after successful auth
+6. **Error** - Displays error messages
+
+## Error Handling
+
+The modal handles errors automatically:
+
+```tsx
+// Errors are displayed in the modal
+// No additional error handling needed
+<EthosAuthModal
+  isOpen={isOpen}
+  onClose={onClose}
+  onSuccess={onSuccess}
+/>
+```
+
+Common errors shown:
+- No Ethos profile found
+- User rejected signature
+- Network errors
+- Wallet not found
+
+## Accessibility
+
+The modal is fully accessible:
+
+- ARIA labels and roles
+- Keyboard navigation (Tab, Escape, Arrow keys)
+- Screen reader support
+- Focus management
+- Color contrast compliance
+
+## Performance
+
+- Lazy loads provider-specific code
+- Optimized bundle size
+- Smooth animations with CSS transitions
+- Minimal re-renders
+
+## Next Steps
+
+- [Styling](/docs/react/styling) - Customize the modal appearance
+- [SignInButton](/docs/react/sign-in-button) - Use the sign-in button
+- [Hooks](/docs/react/hooks) - Manage auth state

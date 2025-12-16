@@ -1,0 +1,116 @@
+---
+sidebar_position: 5
+---
+
+# FAQ
+
+Frequently asked questions about Sign in with Ethos.
+
+## General
+
+### What is Sign in with Ethos?
+
+Sign in with Ethos is an authentication solution that combines wallet-based (SIWE) and social authentication with Ethos Network's decentralized reputation system.
+
+### Is it free to use?
+
+Yes! The SDK and components are open source and free to use.
+
+### Do users need an Ethos profile?
+
+Yes. Users must have an Ethos profile to authenticate. If they don't have one, direct them to [ethos.network](https://ethos.network) to create one.
+
+### What wallets are supported?
+
+Any EIP-1193 compatible wallet:
+- MetaMask
+- Rabby
+- Phantom
+- Coinbase Wallet
+- Brave Wallet
+- And more!
+
+## Technical
+
+### Can I use this with Next.js?
+
+Yes! Works with both App Router and Pages Router. See the [Integration Guide](/docs/guides/integration).
+
+### Does it work with TypeScript?
+
+Yes! Full TypeScript support with comprehensive type definitions.
+
+### Can I customize the styling?
+
+Absolutely! See the [Styling Guide](/docs/react/styling).
+
+### Is it mobile-friendly?
+
+Yes! Fully responsive and works on all screen sizes.
+
+### Can I filter which providers to show?
+
+Yes! Use the `showProviders` prop:
+
+```tsx
+<EthosAuthModal
+  showProviders={['wallet', 'farcaster']}
+  ...
+/>
+```
+
+## Authentication
+
+### How do I check a user's score?
+
+Use the Ethos API:
+
+```javascript
+import { fetchEthosScore } from '@thebbz/siwe-ethos';
+
+const { score } = await fetchEthosScore('address', '0x...');
+```
+
+### Can I require a minimum score?
+
+Yes! Use score validation:
+
+```javascript
+import { validateMinScore } from '@thebbz/siwe-ethos';
+
+validateMinScore(user, 1000); // Throws if score < 1000
+```
+
+### How long do sessions last?
+
+Tokens expire after 24 hours by default. You can customize this in the SDK configuration.
+
+### Can I use multiple chains?
+
+Yes! Specify the `chainId` when initializing:
+
+```javascript
+const auth = EthosWalletAuth.init({ chainId: 137 }); // Polygon
+```
+
+## Troubleshooting
+
+### Modal won't open
+
+Ensure `isOpen` is set to `true` and styles are imported.
+
+### Wallet won't connect
+
+- Check wallet is installed and unlocked
+- Verify network connection
+- Try a different wallet
+
+### Getting "no_ethos_profile" error
+
+The user needs to create an Ethos profile at [ethos.network](https://ethos.network).
+
+## More Questions?
+
+- Check the [Troubleshooting Guide](/docs/guides/troubleshooting)
+- [Open an issue](https://github.com/thebbz/signinwithethos/issues)
+- [Join discussions](https://github.com/thebbz/signinwithethos/discussions)

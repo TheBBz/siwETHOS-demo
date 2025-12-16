@@ -1,0 +1,179 @@
+---
+sidebar_position: 2
+---
+
+# Installation
+
+Get started with Sign in with Ethos React components.
+
+## Package Installation
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos-react
+```
+
+## Peer Dependencies
+
+The package requires React 17 or higher:
+
+```bash npm2yarn
+npm install react react-dom
+```
+
+:::info TypeScript
+Type definitions are included - no need for `@types/*` packages!
+:::
+
+## Import Styles
+
+Import the default styles in your app:
+
+```tsx
+import '@thebbz/siwe-ethos-react/styles.css';
+```
+
+Place this import at the top level of your application (e.g., `App.tsx` or `index.tsx`).
+
+## Importing Components
+
+```tsx
+import { EthosAuthModal, SignInButton } from '@thebbz/siwe-ethos-react';
+```
+
+## Importing Types
+
+```tsx
+import type {
+  EthosAuthResult,
+  EthosAuthModalProps,
+  EthosProfile,
+} from '@thebbz/siwe-ethos-react';
+```
+
+## Importing Hooks
+
+```tsx
+import { useEthosAuth } from '@thebbz/siwe-ethos-react/hooks';
+```
+
+## Framework Integration
+
+### Next.js
+
+#### App Router (Next.js 13+)
+
+```tsx
+// app/layout.tsx
+import '@thebbz/siwe-ethos-react/styles.css';
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+```tsx
+// app/page.tsx
+'use client';
+
+import { useState } from 'react';
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+
+export default function Page() {
+  const [isOpen, setIsOpen] = useState(false);
+  // ... rest of component
+}
+```
+
+#### Pages Router
+
+```tsx
+// pages/_app.tsx
+import '@thebbz/siwe-ethos-react/styles.css';
+import type { AppProps } from 'next/app';
+
+export default function App({ Component, pageProps }: AppProps) {
+  return <Component {...pageProps} />;
+}
+```
+
+### Vite
+
+```tsx
+// src/main.tsx
+import '@thebbz/siwe-ethos-react/styles.css';
+import { createRoot } from 'react-dom/client';
+import App from './App';
+
+createRoot(document.getElementById('root')!).render(<App />);
+```
+
+### Create React App
+
+```tsx
+// src/index.tsx
+import '@thebbz/siwe-ethos-react/styles.css';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root')!);
+root.render(<App />);
+```
+
+## Verification
+
+Verify the installation:
+
+```tsx
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+import '@thebbz/siwe-ethos-react/styles.css';
+
+function Test() {
+  return (
+    <EthosAuthModal
+      isOpen={true}
+      onClose={() => {}}
+      onSuccess={() => {}}
+    />
+  );
+}
+```
+
+If the modal renders without errors, you're all set!
+
+## Optional: Configuration
+
+### Custom Auth Server
+
+If you're self-hosting the auth server:
+
+```tsx
+<EthosAuthModal
+  isOpen={isOpen}
+  onClose={onClose}
+  onSuccess={onSuccess}
+  baseUrl="https://your-auth-server.com" // Custom server
+/>
+```
+
+### Filter Providers
+
+Show only specific authentication methods:
+
+```tsx
+<EthosAuthModal
+  isOpen={isOpen}
+  onClose={onClose}
+  onSuccess={onSuccess}
+  showProviders={['wallet', 'farcaster', 'discord']} // Only these
+/>
+```
+
+## Next Steps
+
+- [EthosAuthModal](/docs/react/auth-modal) - Learn about the modal component
+- [Styling](/docs/react/styling) - Customize the appearance
+- [Hooks](/docs/react/hooks) - Manage authentication state

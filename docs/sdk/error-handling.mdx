@@ -1,0 +1,285 @@
+---
+sidebar_position: 7
+---
+
+# Error Handling
+
+Learn how to handle errors gracefully in the SDK.
+
+## Error Class
+
+All SDK errors extend the `EthosAuthError` class:
+
+```typescript
+class EthosAuthError extends Error {
+  code: string;
+  message: string;
+  details?: any;
+}
+```
+
+## Error Codes
+
+| Code | Description | How to Handle |
+|------|-------------|---------------|
+| `no_ethos_profile` | User doesn't have an Ethos profile | Redirect to Ethos Network to create profile |
+| `signature_rejected` | User rejected the signature request | Show message asking to sign again |
+| `invalid_signature` | Signature verification failed | Try authentication again |
+| `invalid_nonce` | Nonce is invalid or expired | Get a new nonce and retry |
+| `expired_message` | SIWE message has expired | Create a new message and retry |
+| `network_error` | Network request failed | Check connection and retry |
+| `server_error` | Server returned an error | Check server logs |
+| `insufficient_score` | User's score is below minimum | Show error or offer alternative |
+
+## Basic Error Handling
+
+```typescript
+import { EthosAuthError } from '@thebbz/siwe-ethos';
+
+try {
+  const result = await auth.signIn(address, signMessageAsync);
+  console.log('Success:', result.user);
+} catch (error) {
+  if (error instanceof EthosAuthError) {
+    console.error('Auth error:', error.code, error.message);
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+## Handling Specific Errors
+
+### No Ethos Profile
+
+```typescript
+try {
+  const result = await auth.signIn(address, signMessageAsync);
+} catch (error) {
+  if (error instanceof EthosAuthError && error.code === 'no_ethos_profile') {
+    // User needs to create an Ethos profile
+    alert('Please create an Ethos profile first');
+    window.location.href = 'https://ethos.network';
+  }
+}
+```
+
+### Signature Rejected
+
+```typescript
+try {
+  const result = await auth.signIn(address, signMessageAsync);
+} catch (error) {
+  if (error instanceof EthosAuthError && error.code === 'signature_rejected') {
+    // User cancelled the signature
+    alert('Please sign the message to continue');
+  }
+}
+```
+
+### Insufficient Score
+
+```typescript
+import { validateMinScore } from '@thebbz/siwe-ethos';
+
+try {
+  const result = await auth.signIn(address, signMessageAsync);
+  validateMinScore(result.user, 1000); // Require score >= 1000
+  
+  // Score is sufficient
+  grantAccess(result.user);
+} catch (error) {
+  if (error.code === 'insufficient_score') {
+    showMessage('Your credibility score is too low to access this feature');
+  }
+}
+```
+
+## Comprehensive Error Handler
+
+```typescript
+async function handleAuth(address: string, signMessage: Function) {
+  try {
+    const result = await auth.signIn(address, signMessage);
+    return { success: true, data: result };
+  } catch (error) {
+    if (error instanceof EthosAuthError) {
+      switch (error.code) {
+        case 'no_ethos_profile':
+          return {
+            success: false,
+            error: 'NO_PROFILE',
+            message: 'Please create an Ethos profile',
+            action: () => window.location.href = 'https://ethos.network',
+          };
+        
+        case 'signature_rejected':
+          return {
+            success: false,
+            error: 'REJECTED',
+            message: 'Signature was rejected. Please try again.',
+            action: () => handleAuth(address, signMessage), // Retry
+          };
+        
+        case 'invalid_signature':
+          return {
+            success: false,
+            error: 'INVALID',
+            message: 'Authentication failed. Please try again.',
+          };
+        
+        case 'network_error':
+          return {
+            success: false,
+            error: 'NETWORK',
+            message: 'Network error. Please check your connection.',
+          };
+        
+        default:
+          return {
+            success: false,
+            error: 'UNKNOWN',
+            message: error.message,
+          };
+      }
+    }
+    
+    // Non-SDK error
+    return {
+      success: false,
+      error: 'UNEXPECTED',
+      message: 'An unexpected error occurred',
+    };
+  }
+}
+```
+
+## Retry Logic
+
+Implement automatic retries for transient errors:
+
+```typescript
+async function signInWithRetry(
+  address: string,
+  signMessage: Function,
+  maxRetries = 3
+) {
+  let lastError;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await auth.signIn(address, signMessage);
+    } catch (error) {
+      lastError = error;
+      
+      if (error instanceof EthosAuthError) {
+        // Don't retry user-caused errors
+        if (['signature_rejected', 'no_ethos_profile'].includes(error.code)) {
+          throw error;
+        }
+        
+        // Retry network/server errors
+        if (['network_error', 'server_error'].includes(error.code)) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+          continue;
+        }
+      }
+      
+      throw error;
+    }
+  }
+  
+  throw lastError;
+}
+```
+
+## Error Logging
+
+Log errors for debugging:
+
+```typescript
+function logAuthError(error: EthosAuthError) {
+  console.error('Authentication Error:', {
+    code: error.code,
+    message: error.message,
+    details: error.details,
+    timestamp: new Date().toISOString(),
+  });
+  
+  // Send to error tracking service
+  if (window.Sentry) {
+    Sentry.captureException(error, {
+      tags: { errorCode: error.code },
+      extra: error.details,
+    });
+  }
+}
+```
+
+## User-Friendly Messages
+
+Convert error codes to user-friendly messages:
+
+```typescript
+const ERROR_MESSAGES = {
+  no_ethos_profile: 'You need an Ethos profile to sign in. Would you like to create one?',
+  signature_rejected: 'Sign the message in your wallet to continue.',
+  invalid_signature: 'Authentication failed. Please try again.',
+  network_error: 'Connection error. Please check your internet and try again.',
+  server_error: 'Server error. Please try again later.',
+  insufficient_score: 'Your credibility score doesn\'t meet the minimum requirement.',
+};
+
+function getUserMessage(error: EthosAuthError): string {
+  return ERROR_MESSAGES[error.code] || 'An error occurred. Please try again.';
+}
+```
+
+## React Error Handling
+
+Using React error boundaries:
+
+```tsx
+import { Component, ReactNode } from 'react';
+import { EthosAuthError } from '@thebbz/siwe-ethos';
+
+class AuthErrorBoundary extends Component {
+  state = { hasError: false, error: null };
+  
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  
+  componentDidCatch(error: Error) {
+    if (error instanceof EthosAuthError) {
+      console.error('Auth error:', error.code);
+    }
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div>
+          <h2>Authentication Error</h2>
+          <p>{this.state.error?.message}</p>
+          <button onClick={() => this.setState({ hasError: false })}>
+            Try Again
+          </button>
+        </div>
+      );
+    }
+    
+    return this.props.children;
+  }
+}
+```
+
+## Best Practices
+
+1. **Always handle errors** - Never let errors crash your app
+2. **Provide clear messages** - Tell users what went wrong and what to do
+3. **Log errors** - Track errors for debugging and monitoring
+4. **Retry transient errors** - Network errors can often be retried
+5. **Don't retry user actions** - If user rejected, don't auto-retry
+6. **Validate inputs** - Catch invalid inputs before making requests
+7. **Use type guards** - Check `instanceof EthosAuthError` before accessing properties

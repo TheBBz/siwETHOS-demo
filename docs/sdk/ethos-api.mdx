@@ -1,0 +1,249 @@
+---
+sidebar_position: 8
+---
+
+# Ethos API Client
+
+Fetch Ethos profiles and credibility scores directly from the Ethos Network API.
+
+## Overview
+
+The SDK includes helper functions to fetch user profiles and scores from Ethos Network without requiring authentication. This is useful for:
+
+- Checking user reputation before authentication
+- Validating scores for access control
+- Displaying public profile information
+- Building reputation-based features
+
+## Fetch Profile
+
+### By Wallet Address
+
+```javascript
+import { fetchEthosProfile } from '@thebbz/siwe-ethos';
+
+const profile = await fetchEthosProfile('address', '0x1234567890123456789012345678901234567890');
+
+console.log(profile.id);          // Profile ID
+console.log(profile.score);       // Credibility score
+console.log(profile.displayName); // Display name
+console.log(profile.username);    // Username
+console.log(profile.avatar);      // Avatar URL
+```
+
+### By Social Accounts
+
+```javascript
+// Twitter/X
+const twitter = await fetchEthosProfile('twitter', 'vitalikbuterin');
+const x = await fetchEthosProfile('x', 'vitalikbuterin'); // Same as 'twitter'
+
+// Discord
+const discord = await fetchEthosProfile('discord', '123456789012345678');
+
+// Farcaster
+const farcaster = await fetchEthosProfile('farcaster', '1234');
+
+// Telegram
+const telegram = await fetchEthosProfile('telegram', '123456789');
+
+// Profile ID
+const profile = await fetchEthosProfile('profile-id', '12345');
+```
+
+## Fetch Score Only
+
+If you only need the credibility score (not the full profile):
+
+```javascript
+import { fetchEthosScore } from '@thebbz/siwe-ethos';
+
+const { score, ok } = await fetchEthosScore('address', '0x123...');
+
+if (ok) {
+  console.log('Score:', score);
+  
+  if (score >= 1000) {
+    console.log('User has good reputation!');
+  }
+} else {
+  console.log('No profile found');
+}
+```
+
+:::tip
+`fetchEthosScore` returns `{ score: 0, ok: false }` if no profile is found, instead of throwing an error. This makes it easier to handle missing profiles.
+:::
+
+## Convenience Functions
+
+### Get by Address
+
+```javascript
+import { getProfileByAddress, getScoreByAddress } from '@thebbz/siwe-ethos';
+
+// Full profile
+const profile = await getProfileByAddress('0x123...');
+
+// Score only
+const { score, ok } = await getScoreByAddress('0x123...');
+```
+
+## Profile Object
+
+The `fetchEthosProfile` function returns an `EthosProfile` object:
+
+```typescript
+interface EthosProfile {
+  id: number;
+  address: string;
+  primaryAddress: string;
+  displayName: string | null;
+  username: string | null;
+  description: string | null;
+  avatar: string | null;
+  score: number;
+  profileUrl: string;
+}
+```
+
+## Lookup Types
+
+| Type | Identifier | Example |
+|------|------------|---------|
+| `address` | Ethereum wallet address | `0x1234...` |
+| `twitter` / `x` | Twitter username | `vitalikbuterin` |
+| `discord` | Discord user ID | `123456789012345678` |
+| `farcaster` | Farcaster FID | `1234` |
+| `telegram` | Telegram user ID | `123456789` |
+| `profile-id` | Ethos profile ID | `12345` |
+
+## Error Handling
+
+```javascript
+try {
+  const profile = await fetchEthosProfile('address', '0x123...');
+  console.log('Found profile:', profile.displayName);
+} catch (error) {
+  if (error.message.includes('not found')) {
+    console.log('User has no Ethos profile');
+    // Optionally redirect to create profile
+    window.location.href = 'https://ethos.network';
+  } else {
+    console.error('API error:', error);
+  }
+}
+```
+
+## Usage Examples
+
+### Pre-Authentication Check
+
+```javascript
+// Check if user has a profile before authentication
+const { ok } = await getScoreByAddress(walletAddress);
+
+if (!ok) {
+  alert('Please create an Ethos profile first');
+  window.location.href = 'https://ethos.network';
+  return;
+}
+
+// Proceed with authentication
+const result = await auth.signIn(walletAddress, signMessage);
+```
+
+### Display Public Profile
+
+```javascript
+function ProfileCard({ address }) {
+  const [profile, setProfile] = useState(null);
+  
+  useEffect(() => {
+    fetchEthosProfile('address', address)
+      .then(setProfile)
+      .catch(console.error);
+  }, [address]);
+  
+  if (!profile) return <div>Loading...</div>;
+  
+  return (
+    <div>
+      <img src={profile.avatar} alt={profile.displayName} />
+      <h3>{profile.displayName || profile.username}</h3>
+      <p>Score: {profile.score}</p>
+      <a href={profile.profileUrl}>View on Ethos</a>
+    </div>
+  );
+}
+```
+
+### Batch Lookup
+
+```javascript
+async function fetchMultipleProfiles(addresses) {
+  const profiles = await Promise.all(
+    addresses.map(addr =>
+      fetchEthosProfile('address', addr)
+        .catch(() => null) // Return null if not found
+    )
+  );
+  
+  return profiles.filter(Boolean); // Filter out nulls
+}
+
+const profiles = await fetchMultipleProfiles([
+  '0x123...',
+  '0x456...',
+  '0x789...',
+]);
+```
+
+### Access Control
+
+```javascript
+async function checkAccess(address) {
+  const { score, ok } = await getScoreByAddress(address);
+  
+  if (!ok) {
+    return { allowed: false, reason: 'No Ethos profile' };
+  }
+  
+  if (score < 500) {
+    return { allowed: false, reason: 'Score too low' };
+  }
+  
+  return { allowed: true };
+}
+```
+
+## Rate Limiting
+
+The Ethos API has rate limits. For production applications:
+
+1. Cache profile data when possible
+2. Batch requests where applicable
+3. Handle rate limit errors gracefully
+
+```javascript
+const cache = new Map();
+
+async function getCachedProfile(address) {
+  if (cache.has(address)) {
+    return cache.get(address);
+  }
+  
+  const profile = await fetchEthosProfile('address', address);
+  cache.set(address, profile);
+  
+  // Cache for 5 minutes
+  setTimeout(() => cache.delete(address), 5 * 60 * 1000);
+  
+  return profile;
+}
+```
+
+## Next Steps
+
+- [Score Validation](/docs/sdk/score-validation) - Validate minimum score requirements
+- [API Reference](/docs/sdk/api-reference) - Complete API documentation

@@ -1,0 +1,384 @@
+---
+sidebar_position: 5
+---
+
+# API Reference
+
+Complete API documentation for the `@thebbz/siwe-ethos` SDK.
+
+## EthosWalletAuth
+
+The main class for wallet-based authentication.
+
+### `init(config?)`
+
+Initialize a new wallet authentication client.
+
+```typescript
+static init(config?: WalletAuthConfig): EthosWalletAuth
+```
+
+**Parameters:**
+- `config` (optional): Configuration object
+  - `authServerUrl?: string` - Auth server URL (default: `'https://ethos.thebbz.xyz'`)
+  - `chainId?: number` - Chain ID (default: `1`)
+  - `statement?: string` - SIWE statement (default: `'Sign in with Ethos'`)
+  - `expirationTime?: number` - Expiration in seconds (default: `86400`)
+
+**Returns:** `EthosWalletAuth` instance
+
+**Example:**
+```javascript
+const auth = EthosWalletAuth.init({
+  chainId: 1,
+  statement: 'Welcome to my app',
+});
+```
+
+---
+
+### `signIn(address, signMessage)`
+
+Complete authentication flow with one method call.
+
+```typescript
+async signIn(
+  address: string,
+  signMessage: (message: string) => Promise<string>
+): Promise<AuthResult>
+```
+
+**Parameters:**
+- `address: string` - Wallet address to authenticate
+- `signMessage: (message: string) => Promise<string>` - Function that signs the message
+
+**Returns:** `Promise<AuthResult>`
+
+**Throws:** `EthosAuthError`
+
+**Example:**
+```javascript
+const result = await auth.signIn(
+  '0x1234...',
+  (msg) => signMessageAsync({ message: msg })
+);
+```
+
+---
+
+### `getNonce()`
+
+Get a cryptographic nonce for creating SIWE messages.
+
+```typescript
+async getNonce(): Promise<NonceResponse>
+```
+
+**Returns:** `Promise<NonceResponse>`
+- `nonce: string` - Cryptographic nonce
+- `expiresAt: string` - ISO 8601 expiration timestamp
+
+**Example:**
+```javascript
+const { nonce, expiresAt } = await auth.getNonce();
+```
+
+---
+
+### `createMessage(address, nonce, options?)`
+
+Create a SIWE message to be signed.
+
+```typescript
+createMessage(
+  address: string,
+  nonce: string,
+  options?: {
+    state?: string;
+    requestId?: string;
+  }
+): { message: SIWEMessage; messageString: string }
+```
+
+**Parameters:**
+- `address: string` - Wallet address
+- `nonce: string` - Nonce from `getNonce()`
+- `options?` - Optional parameters
+  - `state?: string` - Custom state parameter
+  - `requestId?: string` - Custom request ID
+
+**Returns:** Object with `message` (structured object) and `messageString` (formatted string)
+
+**Example:**
+```javascript
+const { message, messageString } = auth.createMessage(address, nonce);
+console.log(messageString); // The text user will sign
+```
+
+---
+
+### `verify(params)`
+
+Verify a signed SIWE message and authenticate.
+
+```typescript
+async verify(params: VerifyParams): Promise<AuthResult>
+```
+
+**Parameters:**
+- `params: VerifyParams`
+  - `message: string` - The SIWE message that was signed
+  - `signature: string` - The signature from the wallet
+  - `address: string` - The wallet address
+
+**Returns:** `Promise<AuthResult>`
+
+**Throws:** `EthosAuthError`
+
+**Example:**
+```javascript
+const result = await auth.verify({
+  message: messageString,
+  signature: '0xabc...',
+  address: '0x123...',
+});
+```
+
+---
+
+### `redirect(redirectUri, state?)`
+
+Redirect to hosted wallet connect page.
+
+```typescript
+redirect(redirectUri: string, state?: string): void
+```
+
+**Parameters:**
+- `redirectUri: string` - Where to redirect after authentication
+- `state?: string` - Optional CSRF token
+
+**Example:**
+```javascript
+auth.redirect('https://myapp.com/callback', 'csrf-token');
+```
+
+---
+
+### `getUser(accessToken)`
+
+Fetch user profile using an access token.
+
+```typescript
+async getUser(accessToken: string): Promise<EthosUser>
+```
+
+**Parameters:**
+- `accessToken: string` - JWT access token from authentication
+
+**Returns:** `Promise<EthosUser>`
+
+**Example:**
+```javascript
+const user = await auth.getUser(token);
+console.log(user.ethosScore);
+```
+
+---
+
+## Ethos API Functions
+
+### `fetchEthosProfile(type, identifier)`
+
+Fetch complete Ethos profile by various identifiers.
+
+```typescript
+async function fetchEthosProfile(
+  type: 'address' | 'twitter' | 'x' | 'discord' | 'farcaster' | 'telegram' | 'profile-id',
+  identifier: string
+): Promise<EthosProfile>
+```
+
+**Example:**
+```javascript
+const profile = await fetchEthosProfile('address', '0x123...');
+const twitter = await fetchEthosProfile('twitter', 'vitalikbuterin');
+```
+
+---
+
+### `fetchEthosScore(type, identifier)`
+
+Fetch just the credibility score (doesn't throw on not found).
+
+```typescript
+async function fetchEthosScore(
+  type: 'address' | 'twitter' | 'discord' | 'farcaster' | 'telegram' | 'profile-id',
+  identifier: string
+): Promise<{ score: number; ok: boolean }>
+```
+
+**Example:**
+```javascript
+const { score, ok } = await fetchEthosScore('address', '0x123...');
+if (ok && score >= 500) {
+  console.log('Good reputation!');
+}
+```
+
+---
+
+### `getProfileByAddress(address)`
+
+Convenience function to get profile by wallet address.
+
+```typescript
+async function getProfileByAddress(address: string): Promise<EthosProfile>
+```
+
+---
+
+### `getScoreByAddress(address)`
+
+Convenience function to get score by wallet address.
+
+```typescript
+async function getScoreByAddress(address: string): Promise<{ score: number; ok: boolean }>
+```
+
+---
+
+## Score Validation
+
+### `validateMinScore(user, minScore)`
+
+Validate that a user meets minimum score requirement. Throws error if not.
+
+```typescript
+function validateMinScore(user: EthosUser | { ethosScore: number }, minScore: number): void
+```
+
+**Throws:** `EthosScoreInsufficientError` if score is below minimum
+
+**Example:**
+```javascript
+try {
+  validateMinScore(user, 1000);
+  // Score is sufficient
+} catch (error) {
+  console.error('Score too low:', error.message);
+}
+```
+
+---
+
+### `meetsMinScore(score, minScore)`
+
+Boolean check if score meets minimum (doesn't throw).
+
+```typescript
+function meetsMinScore(score: number, minScore: number): boolean
+```
+
+**Example:**
+```javascript
+if (meetsMinScore(user.ethosScore, 500)) {
+  grantAccess();
+}
+```
+
+---
+
+### `getScoreTier(score)`
+
+Get tier classification for a score.
+
+```typescript
+function getScoreTier(score: number): 'very_low' | 'low' | 'fair' | 'good' | 'trusted' | 'great' | 'excellent' | 'exemplary'
+```
+
+**Example:**
+```javascript
+const tier = getScoreTier(1850); // 'trusted'
+```
+
+---
+
+## Types
+
+### `AuthResult`
+
+```typescript
+interface AuthResult {
+  accessToken: string;
+  tokenType: 'Bearer';
+  expiresIn: number;
+  user: EthosUser;
+  refreshToken?: string;
+}
+```
+
+### `EthosUser`
+
+```typescript
+interface EthosUser {
+  sub: string;
+  name: string;
+  picture: string | null;
+  ethosProfileId: number;
+  ethosUsername: string | null;
+  ethosScore: number;
+  ethosStatus: string;
+  ethosAttestations: string[];
+  authMethod: AuthMethod;
+  walletAddress?: string;
+  socialProvider?: SocialProvider;
+  socialId?: string;
+  profileUrl?: string;
+}
+```
+
+### `SIWEMessage`
+
+```typescript
+interface SIWEMessage {
+  domain: string;
+  address: string;
+  uri: string;
+  version: string;
+  chainId: number;
+  nonce: string;
+  issuedAt: string;
+  statement?: string;
+  expirationTime?: string;
+  notBefore?: string;
+  requestId?: string;
+  resources?: string[];
+}
+```
+
+For complete type definitions, see [TypeScript Types](/docs/sdk/types).
+
+---
+
+## Error Class
+
+### `EthosAuthError`
+
+```typescript
+class EthosAuthError extends Error {
+  code: string;
+  message: string;
+  details?: any;
+}
+```
+
+**Error Codes:**
+- `no_ethos_profile` - User doesn't have an Ethos profile
+- `signature_rejected` - User rejected signature request
+- `invalid_signature` - Signature verification failed
+- `invalid_nonce` - Nonce is invalid or expired
+- `network_error` - Network request failed
+- `server_error` - Server returned an error
+
+See [Error Handling](/docs/sdk/error-handling) for details.

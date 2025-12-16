@@ -1,0 +1,95 @@
+---
+sidebar_position: 1
+---
+
+# SDK Overview
+
+The **@thebbz/siwe-ethos** SDK provides JavaScript/TypeScript utilities for integrating Sign in with Ethos authentication into any web application.
+
+## What's Included
+
+The SDK provides complete support for:
+
+### Wallet Authentication (SIWE)
+- EIP-4361 compliant Sign-In with Ethereum
+- Compatible with all EIP-1193 wallets (MetaMask, Rabby, Coinbase Wallet, etc.)
+- Nonce generation and management
+- Message signing and verification
+- Session management
+
+### Social Authentication
+- Discord OAuth2
+- Twitter/X OAuth2
+- Farcaster (Sign-In with Farcaster)
+- Telegram Login Widget
+- GitHub OAuth2
+
+### Ethos Integration
+- Fetch user profiles and credibility scores
+- Validate minimum score requirements
+- Access user attestations and verifications
+- Score tier classification
+
+## Installation
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos
+```
+
+## Basic Usage
+
+```javascript
+import { EthosWalletAuth } from '@thebbz/siwe-ethos';
+
+// Initialize the auth client
+const auth = EthosWalletAuth.init({
+  authServerUrl: 'https://ethos.thebbz.xyz',
+  chainId: 1,
+});
+
+// Sign in with wallet
+const result = await auth.signIn(address, signMessageAsync);
+console.log('Authenticated:', result.user);
+```
+
+## Core Features
+
+### Type Safety
+Full TypeScript support with comprehensive type definitions:
+
+```typescript
+import type { 
+  EthosUser, 
+  AuthResult, 
+  WalletAuthConfig 
+} from '@thebbz/siwe-ethos';
+```
+
+### Error Handling
+Structured error types for better error management:
+
+```typescript
+import { EthosAuthError } from '@thebbz/siwe-ethos';
+
+try {
+  const result = await auth.signIn(address, signMessage);
+} catch (error) {
+  if (error instanceof EthosAuthError) {
+    console.error('Auth error:', error.code, error.message);
+  }
+}
+```
+
+### Flexible Integration
+Works with any wallet library:
+- wagmi/viem
+- ethers.js
+- web3.js
+- Native window.ethereum
+
+## Next Steps
+
+- [Installation Guide](/docs/sdk/installation) - Detailed setup instructions
+- [Wallet Authentication](/docs/sdk/wallet-auth) - Learn about SIWE authentication
+- [API Reference](/docs/sdk/api-reference) - Complete API documentation
+- [TypeScript Types](/docs/sdk/types) - Type definitions

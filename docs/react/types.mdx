@@ -1,0 +1,91 @@
+---
+sidebar_position: 7
+---
+
+# TypeScript Types
+
+TypeScript type definitions for React components.
+
+## Component Props
+
+### EthosAuthModalProps
+
+```typescript
+interface EthosAuthModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: (result: EthosAuthResult) => void;
+  baseUrl?: string;
+  showProviders?: string[];
+}
+```
+
+### SignInButtonProps
+
+```typescript
+interface SignInButtonProps {
+  onSuccess: (result: EthosAuthResult) => void;
+  onError?: (error: Error) => void;
+  baseUrl?: string;
+  showProviders?: string[];
+  children?: ReactNode;
+  className?: string;
+  disabled?: boolean;
+}
+```
+
+## Result Types
+
+### EthosAuthResult
+
+```typescript
+interface EthosAuthResult {
+  profile: EthosProfile;
+  provider: EthosProvider;
+  providerData?: any;
+}
+```
+
+### EthosProfile
+
+```typescript
+interface EthosProfile {
+  id: number;
+  address: string;
+  primaryAddress: string;
+  displayName: string | null;
+  username: string | null;
+  description: string | null;
+  avatar: string | null;
+  score: number;
+  profileUrl: string;
+}
+```
+
+### EthosProvider
+
+```typescript
+type EthosProvider = 
+  | 'wallet'
+  | 'farcaster'
+  | 'discord'
+  | 'twitter'
+  | 'telegram'
+  | 'github';
+```
+
+## Usage
+
+```tsx
+import type {
+  EthosAuthResult,
+  EthosAuthModalProps,
+  EthosProfile,
+  EthosProvider,
+} from '@thebbz/siwe-ethos-react';
+
+const handleSuccess = (result: EthosAuthResult) => {
+  const profile: EthosProfile = result.profile;
+  const provider: EthosProvider = result.provider;
+};
+```

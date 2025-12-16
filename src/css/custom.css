@@ -1,0 +1,90 @@
+/**
+ * Custom CSS for Docusaurus
+ */
+
+:root {
+  --ifm-color-primary: #2E7BC3;
+  --ifm-color-primary-dark: #296db0;
+  --ifm-color-primary-darker: #2767a6;
+  --ifm-color-primary-darkest: #205589;
+  --ifm-color-primary-light: #3389d6;
+  --ifm-color-primary-lighter: #3d8dd8;
+  --ifm-color-primary-lightest: #56a0df;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #3d8bd4;
+  --ifm-color-primary-dark: #2679c7;
+  --ifm-color-primary-darker: #2472bc;
+  --ifm-color-primary-darkest: #1e5e9b;
+  --ifm-color-primary-light: #549de1;
+  --ifm-color-primary-lighter: #61a4e3;
+  --ifm-color-primary-lightest: #83b8ea;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Custom styles */
+.hero {
+  background: linear-gradient(135deg, #2E7BC3 0%, #3d8bd4 100%);
+  color: white;
+}
+
+.hero__title {
+  font-size: 3rem;
+  font-weight: 800;
+}
+
+.hero__subtitle {
+  font-size: 1.5rem;
+  opacity: 0.9;
+}
+
+/* Code blocks */
+.prism-code {
+  font-size: 0.9rem;
+  border-radius: 8px;
+}
+
+/* Improve table styling */
+table {
+  display: table;
+  width: 100%;
+}
+
+/* Make inline code stand out */
+code {
+  background-color: rgba(46, 123, 195, 0.1);
+  border-radius: 3px;
+  padding: 0.2em 0.4em;
+}
+
+/* Badge styles for type annotations */
+.badge {
+  display: inline-block;
+  padding: 0.25em 0.6em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25rem;
+  margin-right: 0.5em;
+}
+
+.badge--primary {
+  background-color: var(--ifm-color-primary);
+  color: white;
+}
+
+.badge--secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.badge--success {
+  background-color: #28a745;
+  color: white;
+}

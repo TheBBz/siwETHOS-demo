@@ -1,0 +1,60 @@
+---
+sidebar_position: 1
+---
+
+# Providers Overview
+
+Authentication provider implementations for Sign in with Ethos.
+
+## What is @thebbz/siwe-ethos-providers?
+
+The providers package contains the server-side and client-side implementation for various authentication providers:
+
+- **Wallet providers** - Ethereum wallet authentication utilities
+- **Social providers** - OAuth and social authentication flows
+- **Score providers** - Ethos credibility score fetching and validation
+
+## Installation
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos-providers
+```
+
+## Included Providers
+
+### Wallet Providers
+- SIWE (Sign-In with Ethereum) - EIP-4361 implementation
+- Message signing and verification
+- Nonce management
+
+### Social Providers
+- **Discord** - OAuth2 integration
+- **Twitter/X** - OAuth2 integration  
+- **Farcaster** - SIWF (Sign-In with Farcaster) protocol
+- **Telegram** - Login Widget integration
+- **GitHub** - OAuth2 integration
+
+### Ethos Provider
+- Profile fetching by various identifiers
+- Score validation
+- Attestation verification
+
+## Usage
+
+The providers package is typically used server-side to implement authentication endpoints:
+
+```javascript
+import { verifyWalletSignature, fetchEthosProfile } from '@thebbz/siwe-ethos-providers';
+
+// Verify wallet signature
+const isValid = await verifyWalletSignature(message, signature, address);
+
+// Fetch Ethos profile
+const profile = await fetchEthosProfile('address', address);
+```
+
+## Next Steps
+
+- [Configuration](/docs/providers/configuration) - Configure providers
+- [SDK Documentation](/docs/sdk/installation) - Use the client SDK
+- [React Components](/docs/react/installation) - Use React components

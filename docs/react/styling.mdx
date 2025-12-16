@@ -1,0 +1,114 @@
+---
+sidebar_position: 6
+---
+
+# Styling & Customization
+
+Customize the appearance of Ethos authentication components.
+
+## Import Styles
+
+First, import the default styles:
+
+```tsx
+import '@thebbz/siwe-ethos-react/styles.css';
+```
+
+## CSS Custom Properties
+
+Customize colors and styling with CSS variables:
+
+```css
+:root {
+  --ethos-modal-bg: #1a1a1a;
+  --ethos-modal-text: #ffffff;
+  --ethos-primary: #2E7BC3;
+  --ethos-primary-hover: #3d8bd4;
+  --ethos-border: #333333;
+  --ethos-border-radius: 12px;
+}
+```
+
+## Dark/Light Mode
+
+The component respects system color scheme by default. Override for specific modes:
+
+```css
+[data-theme='light'] {
+  --ethos-modal-bg: #ffffff;
+  --ethos-modal-text: #000000;
+  --ethos-border: #e5e7eb;
+}
+
+[data-theme='dark'] {
+  --ethos-modal-bg: #1a1a1a;
+  --ethos-modal-text: #ffffff;
+  --ethos-border: #333333;
+}
+```
+
+## Class Overrides
+
+Target specific elements with class selectors:
+
+```css
+.ethos-modal {
+  /* Modal container */
+}
+
+.ethos-modal-content {
+  /* Modal content area */
+  border-radius: 16px;
+}
+
+.ethos-provider-button {
+  /* Provider selection buttons */
+  padding: 16px;
+}
+
+.ethos-provider-button:hover {
+  transform: scale(1.02);
+}
+```
+
+## Custom Theme Example
+
+```css
+:root {
+  /* Purple theme */
+  --ethos-primary: #8b5cf6;
+  --ethos-primary-hover: #7c3aed;
+  --ethos-modal-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --ethos-border-radius: 20px;
+}
+
+.ethos-modal-content {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
+}
+```
+
+## Responsive Design
+
+The components are responsive by default. Customize breakpoints:
+
+```css
+@media (max-width: 768px) {
+  .ethos-modal-content {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+}
+```
+
+## Animation Customization
+
+Modify animations:
+
+```css
+.ethos-modal {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+}
+```

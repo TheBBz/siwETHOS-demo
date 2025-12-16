@@ -1,0 +1,286 @@
+---
+sidebar_position: 9
+---
+
+# Score Validation
+
+Utilities for validating and working with Ethos credibility scores.
+
+## Score Range
+
+Ethos credibility scores range from **0 to 2800**:
+
+- **0-699**: Very Low
+- **700-999**: Low
+- **1000-1299**: Fair
+- **1300-1599**: Good
+- **1600-1899**: Great
+- **1900-2199**: Excellent
+- **2200-2800**: Exemplary
+
+## Validate Minimum Score
+
+Enforce minimum score requirements for access control:
+
+```javascript
+import { validateMinScore } from '@thebbz/siwe-ethos';
+
+try {
+  // Throws error if score is below 1000
+  validateMinScore(user, 1000);
+  
+  // Score is sufficient - grant access
+  grantPremiumFeatures(user);
+} catch (error) {
+  console.error('Score too low:', error.message);
+  showUpgradeMessage();
+}
+```
+
+### API
+
+```typescript
+function validateMinScore(
+  user: EthosUser | { ethosScore: number },
+  minScore: number
+): void
+```
+
+**Throws:** `EthosScoreInsufficientError` if score < minScore
+
+## Boolean Check
+
+Check if score meets minimum without throwing:
+
+```javascript
+import { meetsMinScore } from '@thebbz/siwe-ethos';
+
+if (meetsMinScore(user.ethosScore, 500)) {
+  console.log('User meets minimum requirement');
+} else {
+  console.log('Score too low');
+}
+```
+
+### API
+
+```typescript
+function meetsMinScore(score: number, minScore: number): boolean
+```
+
+**Returns:** `true` if score >= minScore, `false` otherwise
+
+## Get Score Tier
+
+Get the tier classification for a score:
+
+```javascript
+import { getScoreTier } from '@thebbz/siwe-ethos';
+
+const tier = getScoreTier(1850);
+console.log(tier); // 'trusted'
+
+const tier2 = getScoreTier(2500);
+console.log(tier2); // 'exemplary'
+```
+
+### API
+
+```typescript
+function getScoreTier(score: number): ScoreTier
+
+type ScoreTier =
+  | 'very_low'
+  | 'low' 
+  | 'fair'
+  | 'good'
+  | 'trusted'
+  | 'great'
+  | 'excellent'
+  | 'exemplary';
+```
+
+## Usage Examples
+
+### Tiered Access
+
+```javascript
+function getAccessLevel(user) {
+  const tier = getScoreTier(user.ethosScore);
+  
+  switch (tier) {
+    case 'exemplary':
+    case 'excellent':
+      return 'premium';
+    case 'great':
+    case 'trusted':
+      return 'standard';
+    default:
+      return 'basic';
+  }
+}
+
+const accessLevel = getAccessLevel(user);
+console.log('Access level:', accessLevel);
+```
+
+### Feature Gating
+
+```javascript
+const FEATURE_REQUIREMENTS = {
+  chat: 0,      // Everyone can chat
+  post: 500,    // Need 500+ to post
+  moderate: 1500, // Need 1500+ to moderate
+  admin: 2000,  // Need 2000+ for admin
+};
+
+function canUseFeature(user, feature) {
+  const required = FEATURE_REQUIREMENTS[feature];
+  return meetsMinScore(user.ethosScore, required);
+}
+
+if (canUseFeature(user, 'moderate')) {
+  showModeratorTools();
+}
+```
+
+### Score Badge UI
+
+```javascript
+function ScoreBadge({ score }) {
+  const tier = getScoreTier(score);
+  
+  const colors = {
+    very_low: '#ef4444',
+    low: '#f97316',
+    fair: '#f59e0b',
+    good: '#84cc16',
+    trusted: '#10b981',
+    great: '#22c55e',
+    excellent: '#14b8a6',
+    exemplary: '#0ea5e9',
+  };
+  
+  const labels = {
+    very_low: 'Very Low',
+    low: 'Low',
+    fair: 'Fair',
+    good: 'Good',
+    trusted: 'Trusted',
+    great: 'Great',
+    excellent: 'Excellent',
+    exemplary: 'Exemplary',
+  };
+  
+  return (
+    <span 
+      style={{ 
+        backgroundColor: colors[tier],
+        color: 'white',
+        padding: '4px 8px',
+        borderRadius: '4px',
+      }}
+    >
+      {score} - {labels[tier]}
+    </span>
+  );
+}
+```
+
+### Conditional Content
+
+```javascript
+function ContentCard({ user, content }) {
+  // High-value content requires good score
+  if (content.requiresHighScore) {
+    if (!meetsMinScore(user.ethosScore, 1200)) {
+      return (
+        <div>
+          <p>This content requires a credibility score of 1200+</p>
+          <p>Your score: {user.ethosScore}</p>
+          <a href="https://ethos.network">Improve your score</a>
+        </div>
+      );
+    }
+  }
+  
+  return <div>{content.body}</div>;
+}
+```
+
+### Progressive Features
+
+```javascript
+function getAvailableFeatures(score) {
+  const features = [];
+  
+  if (score >= 0) features.push('view_content');
+  if (score >= 500) features.push('create_posts');
+  if (score >= 1000) features.push('comment');
+  if (score >= 1500) features.push('moderate');
+  if (score >= 2000) features.push('admin');
+  
+  return features;
+}
+
+const features = getAvailableFeatures(user.ethosScore);
+console.log('Available features:', features);
+```
+
+### Dynamic Pricing
+
+```javascript
+function getSubscriptionPrice(user) {
+  const tier = getScoreTier(user.ethosScore);
+  
+  const prices = {
+    very_low: 99,
+    low: 79,
+    fair: 69,
+    good: 59,
+    trusted: 49,
+    great: 39,
+    excellent: 29,
+    exemplary: 19,
+  };
+  
+  return prices[tier];
+}
+
+const price = getSubscriptionPrice(user);
+console.log(`Subscription: $${price}/month`);
+```
+
+## Error Handling
+
+```javascript
+import { EthosScoreInsufficientError } from '@thebbz/siwe-ethos';
+
+try {
+  validateMinScore(user, 1000);
+  proceedWithAction();
+} catch (error) {
+  if (error instanceof EthosScoreInsufficientError) {
+    showDialog({
+      title: 'Score Too Low',
+      message: `You need a score of ${error.requiredScore} or higher. Your current score is ${error.currentScore}.`,
+      action: 'Improve Score',
+      onAction: () => window.open('https://ethos.network'),
+    });
+  }
+}
+```
+
+## Best Practices
+
+1. **Be transparent** - Clearly communicate score requirements
+2. **Provide value** - Show users how to improve their score
+3. **Progressive enhancement** - Unlock features as scores improve
+4. **Fair limits** - Don't set requirements too high
+5. **Cache scores** - Scores don't change frequently
+6. **Handle errors** - Some users may not have profiles
+
+## Next Steps
+
+- [Ethos API](/docs/sdk/ethos-api) - Fetch scores and profiles
+- [Error Handling](/docs/sdk/error-handling) - Handle validation errors

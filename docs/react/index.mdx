@@ -1,0 +1,130 @@
+---
+sidebar_position: 1
+---
+
+# React Overview
+
+Beautiful, pre-built React components for Sign in with Ethos authentication.
+
+## What's Included
+
+The `@thebbz/siwe-ethos-react` package provides:
+
+### Components
+- **EthosAuthModal** - Complete authentication modal with wallet and social login
+- **SignInButton** - Customizable sign-in button
+- **Other UI components** - Supporting components for custom implementations
+
+### Hooks
+- **useEthosAuth** - Manage authentication state
+- **Other hooks** - Additional hooks for common patterns
+
+### Styling
+- Pre-built CSS with dark/light mode
+- Customizable with CSS variables
+- Full theme control
+
+## Features
+
+✨ **Beautiful UI** - Polished, modern design out of the box  
+🎨 **Customizable** - Style with CSS variables or override classes  
+🌓 **Dark Mode** - Built-in dark/light mode support  
+📱 **Responsive** - Works on mobile, tablet, and desktop  
+♿ **Accessible** - WCAG compliant with keyboard navigation  
+⚡ **Fast** - Optimized bundle size and performance  
+🔒 **Secure** - Follows security best practices  
+📘 **TypeScript** - Full type definitions included
+
+## Installation
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos-react
+```
+
+### Peer Dependencies
+
+Requires React 17+:
+
+```bash npm2yarn
+npm install react react-dom
+```
+
+## Quick Start
+
+```tsx
+import { useState } from 'react';
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+import '@thebbz/siwe-ethos-react/styles.css';
+
+function App() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState(null);
+
+  return (
+    <div>
+      <button onClick={() => setIsOpen(true)}>
+        {user ? `Welcome ${user.profile.displayName}` : 'Sign In'}
+      </button>
+
+      <EthosAuthModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSuccess={(result) => {
+          setUser(result);
+          setIsOpen(false);
+        }}
+      />
+    </div>
+  );
+}
+```
+
+## Supported Authentication Methods
+
+### Wallet Authentication
+- MetaMask
+- Rabby
+- Phantom
+- Zerion
+- Coinbase Wallet
+- Brave Wallet
+- Any EIP-1193 compatible wallet
+
+### Social Authentication
+- Farcaster (QR code)
+- Discord (OAuth2)
+- Twitter/X (OAuth2)
+- Telegram (Login Widget)
+- GitHub (OAuth2)
+
+## TypeScript Support
+
+Full TypeScript support with comprehensive type definitions:
+
+```tsx
+import type {
+  EthosAuthResult,
+  EthosAuthModalProps,
+  EthosProvider,
+} from '@thebbz/siwe-ethos-react';
+
+const handleSuccess = (result: EthosAuthResult) => {
+  console.log('Provider:', result.provider);
+  console.log('Profile:', result.profile);
+};
+```
+
+## Browser Support
+
+- Chrome 80+
+- Firefox 75+
+- Safari 13.1+
+- Edge 80+
+- Mobile browsers (iOS Safari, Chrome Mobile)
+
+## Next Steps
+
+- [Installation Guide](/docs/react/installation) - Detailed setup
+- [EthosAuthModal](/docs/react/auth-modal) - Complete modal documentation
+- [Hooks](/docs/react/hooks) - React hooks for auth state
+- [Styling](/docs/react/styling) - Customize the appearance

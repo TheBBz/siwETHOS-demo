@@ -1,0 +1,340 @@
+---
+sidebar_position: 3
+---
+
+# Wallet Authentication
+
+Learn how to authenticate users with their Ethereum wallets using Sign-In with Ethereum (SIWE / EIP-4361).
+
+## Overview
+
+Wallet authentication allows users to prove ownership of their Ethereum address by signing a message. The SDK handles the entire SIWE flow:
+
+1. Generate a cryptographic nonce
+2. Create an EIP-4361 compliant message
+3. Request wallet signature
+4. Verify the signature server-side
+5. Check for Ethos profile and return user data
+
+## Quick Start
+
+### Using wagmi (Recommended)
+
+The simplest way to integrate wallet authentication is with [wagmi](https://wagmi.sh):
+
+```tsx
+import { useAccount, useSignMessage } from 'wagmi';
+import { EthosWalletAuth } from '@thebbz/siwe-ethos';
+
+function LoginButton() {
+  const { address } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+  const auth = EthosWalletAuth.init();
+
+  const handleLogin = async () => {
+    if (!address) return;
+    
+    try {
+      const result = await auth.signIn(address, signMessageAsync);
+      
+      console.log('✅ Authenticated!');
+      console.log('User:', result.user.name);
+      console.log('Score:', result.user.ethosScore);
+      console.log('Token:', result.accessToken);
+    } catch (error) {
+      console.error('Authentication failed:', error.message);
+    }
+  };
+
+  return (
+    <button onClick={handleLogin} disabled={!address}>
+      Sign in with Ethos
+    </button>
+  );
+}
+```
+
+## Initialization
+
+Initialize the wallet auth client with optional configuration:
+
+```javascript
+import { EthosWalletAuth } from '@thebbz/siwe-ethos';
+
+const auth = EthosWalletAuth.init({
+  authServerUrl: 'https://ethos.thebbz.xyz',  // Your auth server
+  chainId: 1,                                  // Ethereum mainnet
+  statement: 'Sign in with Ethos',            // Custom message
+  expirationTime: 86400,                      // 24 hours in seconds
+});
+```
+
+### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `authServerUrl` | `string` | `'https://ethos.thebbz.xyz'` | URL of your authentication server |
+| `chainId` | `number` | `1` | Ethereum chain ID (1 = mainnet, 137 = Polygon, etc.) |
+| `statement` | `string` | `'Sign in with Ethos'` | Message shown to the user |
+| `expirationTime` | `number` | `86400` | Token expiration time in seconds |
+
+## Authentication Methods
+
+### Method 1: One-Step Sign In
+
+The simplest method - provide an address and a signing function:
+
+```javascript
+const result = await auth.signIn(
+  walletAddress,
+  (message) => signMessageAsync({ message })
+);
+```
+
+**Parameters:**
+- `address` (string) - The wallet address to authenticate
+- `signMessage` (function) - An async function that signs the message
+
+**Returns:** `Promise<AuthResult>`
+
+### Method 2: Step-by-Step Flow
+
+For more control, break down the authentication flow:
+
+```javascript
+// Step 1: Get a nonce
+const { nonce } = await auth.getNonce();
+
+// Step 2: Create the SIWE message
+const { message, messageString } = auth.createMessage(walletAddress, nonce);
+
+// Step 3: Sign the message
+const signature = await signMessageAsync({ message: messageString });
+
+// Step 4: Verify and authenticate
+const result = await auth.verify({
+  message: messageString,
+  signature,
+  address: walletAddress,
+});
+```
+
+This approach gives you access to the SIWE message before signing, which can be useful for:
+- Displaying the message to users
+- Custom validation
+- Debugging
+
+### Method 3: Redirect Flow
+
+For applications that prefer a redirect-based flow:
+
+```javascript
+// Redirect to hosted auth page
+auth.redirect(
+  'https://yourapp.com/callback',  // Where to redirect after auth
+  'csrf-token-123'                 // Optional CSRF token
+);
+
+// On your callback page, handle the result
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+const user = await auth.getUser(token);
+```
+
+## Using with Different Wallet Libraries
+
+### ethers.js
+
+```javascript
+import { BrowserProvider } from 'ethers';
+
+const provider = new BrowserProvider(window.ethereum);
+const signer = await provider.getSigner();
+const address = await signer.getAddress();
+
+const result = await auth.signIn(
+  address,
+  (message) => signer.signMessage(message)
+);
+```
+
+### web3.js
+
+```javascript
+import Web3 from 'web3';
+
+const web3 = new Web3(window.ethereum);
+const accounts = await web3.eth.getAccounts();
+const address = accounts[0];
+
+const result = await auth.signIn(
+  address,
+  (message) => web3.eth.personal.sign(message, address)
+);
+```
+
+### Raw window.ethereum
+
+```javascript
+const accounts = await window.ethereum.request({
+  method: 'eth_requestAccounts'
+});
+const address = accounts[0];
+
+const result = await auth.signIn(
+  address,
+  async (message) => {
+    return await window.ethereum.request({
+      method: 'personal_sign',
+      params: [message, address],
+    });
+  }
+);
+```
+
+## Authentication Result
+
+The `signIn()` method returns an `AuthResult` object:
+
+```typescript
+interface AuthResult {
+  accessToken: string;      // JWT token for API calls
+  tokenType: 'Bearer';      // Token type
+  expiresIn: number;        // Expiration time in seconds
+  user: EthosUser;          // User profile data
+  refreshToken?: string;    // Optional refresh token
+}
+```
+
+### User Object
+
+```typescript
+interface EthosUser {
+  sub: string;                    // Unique ID (ethos:profileId)
+  name: string;                   // Display name
+  picture: string | null;         // Avatar URL
+  ethosProfileId: number;         // Ethos profile ID
+  ethosUsername: string | null;   // Ethos username
+  ethosScore: number;             // Credibility score (0-2800)
+  ethosStatus: string;            // ACTIVE, INACTIVE, MERGED
+  ethosAttestations: string[];    // Verified accounts
+  authMethod: 'wallet';           // Auth method used
+  walletAddress: string;          // Connected wallet
+}
+```
+
+## Storing the Token
+
+After successful authentication, store the access token:
+
+```javascript
+const result = await auth.signIn(address, signMessageAsync);
+
+// Store in localStorage
+localStorage.setItem('ethos_token', result.accessToken);
+
+// Store in sessionStorage (more secure)
+sessionStorage.setItem('ethos_token', result.accessToken);
+
+// Or use cookies (for SSR)
+document.cookie = `token=${result.accessToken}; path=/; secure; samesite=strict`;
+```
+
+## Fetching User Profile
+
+Retrieve user data using a stored token:
+
+```javascript
+const token = localStorage.getItem('ethos_token');
+const user = await auth.getUser(token);
+
+console.log('Welcome back,', user.name);
+```
+
+## SIWE Message Format
+
+The SDK creates EIP-4361 compliant messages:
+
+```
+ethos.network wants you to sign in with your Ethereum account:
+0x1234567890123456789012345678901234567890
+
+Sign in with Ethos - Verify your identity to access your Ethos profile.
+
+URI: https://yourapp.com
+Version: 1
+Chain ID: 1
+Nonce: KjBsE3L9mN2pQ4rT
+Issued At: 2025-12-16T16:00:00.000Z
+Expiration Time: 2025-12-16T16:05:00.000Z
+Resources:
+- https://ethos.network
+```
+
+## Error Handling
+
+Handle authentication errors gracefully:
+
+```javascript
+import { EthosAuthError } from '@thebbz/siwe-ethos';
+
+try {
+  const result = await auth.signIn(address, signMessageAsync);
+} catch (error) {
+  if (error instanceof EthosAuthError) {
+    switch (error.code) {
+      case 'no_ethos_profile':
+        // User doesn't have an Ethos profile
+        window.location.href = 'https://ethos.network';
+        break;
+      
+      case 'signature_rejected':
+        // User rejected the signature
+        alert('Please sign the message to continue');
+        break;
+      
+      case 'invalid_signature':
+        // Signature verification failed
+        console.error('Invalid signature');
+        break;
+      
+      default:
+        console.error('Authentication error:', error.message);
+    }
+  }
+}
+```
+
+See [Error Handling](/docs/sdk/error-handling) for complete error documentation.
+
+## Security Best Practices
+
+:::tip Security
+1. **Always verify signatures server-side** - Never trust client-side verification
+2. **Use HTTPS** - Ensure your auth server uses SSL/TLS
+3. **Validate nonces** - Nonces should be single-use and expire quickly
+4. **Check message expiration** - Reject expired SIWE messages
+5. **Validate domain** - Ensure the message domain matches your application
+:::
+
+## Multi-Chain Support
+
+To support multiple chains, create separate auth instances:
+
+```javascript
+const mainnetAuth = EthosWalletAuth.init({ chainId: 1 });
+const polygonAuth = EthosWalletAuth.init({ chainId: 137 });
+const arbitrumAuth = EthosWalletAuth.init({ chainId: 42161 });
+```
+
+Or dynamically configure the chain:
+
+```javascript
+const auth = EthosWalletAuth.init({ chainId: selectedChainId });
+```
+
+## Next Steps
+
+- [API Reference](/docs/sdk/api-reference) - Complete method documentation
+- [Error Handling](/docs/sdk/error-handling) - Learn about error types
+- [TypeScript Types](/docs/sdk/types) - Explore type definitions

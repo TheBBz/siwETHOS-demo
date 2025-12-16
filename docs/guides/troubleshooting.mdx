@@ -1,0 +1,101 @@
+---
+sidebar_position: 4
+---
+
+# Troubleshooting
+
+Common issues and solutions.
+
+## Installation Issues
+
+### Package not found
+
+```bash
+# Clear cache and reinstall
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### TypeScript errors
+
+Ensure you have the latest version:
+
+```bash
+npm install @thebbz/siwe-ethos-react@latest
+```
+
+## Runtime Issues
+
+### Modal doesn't open
+
+Check that you're setting `isOpen` to `true`:
+
+```tsx
+const [isOpen, setIsOpen] = useState(false);
+
+<button onClick={() => setIsOpen(true)}>Open</button>
+<EthosAuthModal isOpen={isOpen} ... />
+```
+
+### Styles not loading
+
+Import the CSS file:
+
+```tsx
+import '@thebbz/siwe-ethos-react/styles.css';
+```
+
+### Wallet connection fails
+
+1. Check that user has a wallet installed
+2. Verify wallet is unlocked
+3. Check network connection
+4. Try a different wallet
+
+### No Ethos Profile error
+
+User needs to create an Ethos profile:
+
+```tsx
+if (error.code === 'no_ethos_profile') {
+  window.location.href = 'https://ethos.network';
+}
+```
+
+## Authentication Issues
+
+### Signature rejected
+
+User cancelled the signature request. Show a message:
+
+```tsx
+if (error.code === 'signature_rejected') {
+  alert('Please sign the message to continue');
+}
+```
+
+### Network errors
+
+Check your auth server URL:
+
+```tsx
+<EthosAuthModal
+  baseUrl="https://your-server.com" // Verify this
+  ...
+/>
+```
+
+## Common Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `no_ethos_profile` | User has no profile | Redirect to ethos.network |
+| `signature_rejected` | User cancelled | Ask to sign again |
+| `network_error` | Connection failed | Check internet/server |
+| `invalid_signature` | Signature failed | Try again |
+
+## Still Having Issues?
+
+1. Check the [FAQ](/docs/guides/faq)
+2. Search [GitHub Issues](https://github.com/thebbz/signinwithethos/issues)
+3. [Open a new issue](https://github.com/thebbz/signinwithethos/issues/new)

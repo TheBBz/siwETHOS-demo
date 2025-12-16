@@ -1,0 +1,71 @@
+---
+sidebar_position: 2
+---
+
+# Provider Configuration
+
+Configure authentication providers for your application.
+
+## Environment Variables
+
+Set up environment variables for OAuth providers:
+
+```bash
+# Discord
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_CLIENT_SECRET=your_client_secret
+DISCORD_REDIRECT_URI=https://yourapp.com/auth/discord/callback
+
+# Twitter
+TWITTER_CLIENT_ID=your_client_id
+TWITTER_CLIENT_SECRET=your_client_secret
+TWITTER_REDIRECT_URI=https://yourapp.com/auth/twitter/callback
+
+# GitHub
+GITHUB_CLIENT_ID=your_client_id
+GITHUB_CLIENT_SECRET=your_client_secret
+GITHUB_REDIRECT_URI=https://yourapp.com/auth/github/callback
+
+# Telegram
+TELEGRAM_BOT_TOKEN=your_bot_token
+
+# Server
+AUTH_SERVER_URL=https://yourapp.com
+JWT_SECRET=your_secret_key
+```
+
+## Provider Setup
+
+### Discord
+
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Create a new application
+3. Add OAuth2 redirect URL
+4. Get Client ID and Secret
+5. Set required scopes: `identify`, `email`
+
+### Twitter
+
+1. Go to [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
+2. Create a new project and app
+3. Enable OAuth 2.0
+4. Add redirect URI
+5. Get Client ID and Secret
+
+### GitHub
+
+1. Go to [GitHub Settings > Developer settings](https://github.com/settings/developers)
+2. Create new OAuth App
+3. Set authorization callback URL
+4. Get Client ID and Secret
+
+### Telegram
+
+1. Talk to [@BotFather](https://t.me/BotFather) on Telegram
+2. Create a new bot with `/newbot`
+3. Get the bot token
+4. Set domain with `/setdomain`
+
+## Server Implementation
+
+See the [Integration Guide](/docs/guides/integration) for complete server implementation examples.

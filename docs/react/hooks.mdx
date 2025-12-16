@@ -1,0 +1,82 @@
+---
+sidebar_position: 5
+---
+
+# React Hooks
+
+Custom hooks for managing authentication state.
+
+## useEthosAuth
+
+Manage authentication state with a custom hook.
+
+### Usage
+
+```tsx
+import { useEthosAuth } from '@thebbz/siwe-ethos-react/hooks';
+
+function App() {
+  const { user, isLoading, signIn, signOut } = useEthosAuth();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (user) {
+    return (
+      <div>
+        <p>Welcome, {user.displayName}!</p>
+        <button onClick={signOut}>Sign Out</button>
+      </div>
+    );
+  }
+
+  return <button onClick={signIn}>Sign In</button>;
+}
+```
+
+### API
+
+```typescript
+interface UseEthosAuthReturn {
+  user: EthosUser | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  signIn: () => void;
+  signOut: () => void;
+  error: Error | null;
+}
+```
+
+### With Provider
+
+For advanced usage, wrap your app in an auth provider:
+
+```tsx
+import { EthosAuthProvider } from '@thebbz/siwe-ethos-react';
+
+function App() {
+  return (
+    <EthosAuthProvider>
+      <YourApp />
+    </EthosAuthProvider>
+  );
+}
+```
+
+Then use the hook in any child component:
+
+```tsx
+function Profile() {
+  const { user, signOut } = useEthosAuth();
+  
+  return (
+    <div>
+      <img src={user?.avatar} />
+      <p>{user?.displayName}</p>
+      <p>Score: {user?.score}</p>
+      <button onClick={signOut}>Sign Out</button>
+    </div>
+  );
+}
+```

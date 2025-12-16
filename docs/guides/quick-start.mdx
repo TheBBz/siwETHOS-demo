@@ -1,0 +1,124 @@
+---
+sidebar_position: 1
+---
+
+# Quick Start Guide
+
+Get up and running with Sign in with Ethos in minutes!
+
+## Choose Your Path
+
+### 🚀 React (Easiest)
+
+Perfect for React applications. Get a beautiful authentication modal with minimal code.
+
+#### 1. Install
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos-react
+```
+
+#### 2. Add to Your App
+
+```tsx
+import { useState } from 'react';
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+import '@thebbz/siwe-ethos-react/styles.css';
+
+function App() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState(null);
+
+  return (
+    <div>
+      <button onClick={() => setIsOpen(true)}>
+        {user ? `Welcome ${user.profile.displayName}` : 'Sign In'}
+      </button>
+
+      <EthosAuthModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSuccess={(result) => {
+          setUser(result);
+          setIsOpen(false);
+        }}
+      />
+    </div>
+  );
+}
+```
+
+#### 3. Done! 🎉
+
+You now have:
+- ✅ Wallet authentication (MetaMask, Rabby, etc.)
+- ✅ Social logins (Discord, Twitter, Farcaster, etc.)
+- ✅ Beautiful UI with dark mode
+- ✅ Ethos credibility scores
+
+---
+
+### 📦 SDK (Vanilla JS/TS)
+
+For non-React apps or custom implementations.
+
+#### 1. Install
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos
+```
+
+#### 2. Authenticate
+
+```javascript
+import { EthosWalletAuth } from '@thebbz/siwe-ethos';
+
+const auth = EthosWalletAuth.init();
+
+// With wagmi
+import { useAccount, useSignMessage } from 'wagmi';
+
+const { address } = useAccount();
+const { signMessageAsync } = useSignMessage();
+
+const result = await auth.signIn(address, signMessageAsync);
+
+console.log('User:', result.user.name);
+console.log('Score:', result.user.ethosScore);
+console.log('Token:', result.accessToken);
+```
+
+#### 3. Store Token
+
+```javascript
+localStorage.setItem('ethos_token', result.accessToken);
+
+// Later, retrieve user
+const token = localStorage.getItem('ethos_token');
+const user = await auth.getUser(token);
+```
+
+---
+
+## What's Next?
+
+### For React Users
+- [EthosAuthModal](/docs/react/auth-modal) - Full component documentation
+- [Styling](/docs/react/styling) - Customize the appearance
+- [Hooks](/docs/react/hooks) - Manage authentication state
+
+### For SDK Users
+- [Wallet Authentication](/docs/sdk/wallet-auth) - Deep dive into SIWE
+- [API Reference](/docs/sdk/api-reference) - Complete API docs
+- [Error Handling](/docs/sdk/error-handling) - Handle errors gracefully
+
+### For Everyone
+- [Examples](/docs/guides/examples) - See real-world examples
+- [Integration](/docs/guides/integration) - Framework-specific guides
+- [FAQ](/docs/guides/faq) - Common questions
+
+## Need Help?
+
+- 📖 Check the [FAQ](/docs/guides/faq)
+- 🐛 [Report Issues](https://github.com/thebbz/signinwithethos/issues)
+- 💬 [Ask Questions](https://github.com/thebbz/signinwithethos/discussions)

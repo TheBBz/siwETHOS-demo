@@ -1,0 +1,118 @@
+---
+sidebar_position: 2
+---
+
+# Installation
+
+Get started with the Sign in with Ethos SDK in your JavaScript or TypeScript project.
+
+## Package Installation
+
+Install the SDK using your preferred package manager:
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos
+```
+
+## Peer Dependencies
+
+The SDK has minimal dependencies and works in any JavaScript environment (browser or Node.js).
+
+:::info
+If you're using TypeScript, the package includes built-in type definitions - no need for `@types/*` packages!
+:::
+
+## Importing
+
+### ES Modules
+
+```javascript
+import { EthosWalletAuth } from '@thebbz/siwe-ethos';
+```
+
+### CommonJS
+
+```javascript
+const { EthosWalletAuth } = require('@thebbz/siwe-ethos');
+```
+
+### TypeScript
+
+```typescript
+import { EthosWalletAuth } from '@thebbz/siwe-ethos';
+import type { EthosUser, AuthResult } from '@thebbz/siwe-ethos';
+```
+
+## Available Exports
+
+The SDK exports the following main items:
+
+### Classes
+- `EthosWalletAuth` - Main authentication class for wallet-based auth
+
+### Functions
+- `fetchEthosProfile()` - Fetch Ethos profiles by various identifiers
+- `fetchEthosScore()` - Fetch credibility scores
+- `getProfileByAddress()` - Get profile by wallet address
+- `getScoreByAddress()` - Get score by wallet address
+- `validateMinScore()` - Validate minimum score requirements
+- `meetsMinScore()` - Check if score meets minimum
+- `getScoreTier()` - Get score tier classification
+
+### Types
+- `EthosUser` - User profile interface
+- `AuthResult` - Authentication result
+- `WalletAuthConfig` - Configuration options
+- `EthosAuthError` - Error class
+- And many more...
+
+See the [API Reference](/docs/sdk/api-reference) for complete documentation.
+
+## Browser Support
+
+The SDK works in all modern browsers:
+
+- Chrome 80+
+- Firefox 75+
+- Safari 13.1+
+- Edge 80+
+
+:::warning Node.js Usage
+If you're using the SDK in Node.js (e.g., for server-side verification), ensure you're using Node.js 18+ for Web Crypto API support.
+:::
+
+## CDN Usage
+
+For quick prototyping, you can use the SDK via CDN:
+
+```html
+<script type="module">
+  import { EthosWalletAuth } from 'https://esm.sh/@thebbz/siwe-ethos';
+  
+  const auth = EthosWalletAuth.init();
+  // ... your code
+</script>
+```
+
+:::caution Production Use
+For production applications, we recommend installing via npm/yarn/pnpm for better performance and version control.
+:::
+
+## Verification
+
+After installation, verify the package is working:
+
+```javascript
+import { EthosWalletAuth } from '@thebbz/siwe-ethos';
+
+const auth = EthosWalletAuth.init();
+console.log('SDK initialized successfully!');
+```
+
+## Next Steps
+
+Now that you have the SDK installed:
+
+- [Wallet Authentication](/docs/sdk/wallet-auth) - Learn how to authenticate with wallets
+- [Social Authentication](/docs/sdk/social-auth) - Set up social logins
+- [API Reference](/docs/sdk/api-reference) - Explore the full API

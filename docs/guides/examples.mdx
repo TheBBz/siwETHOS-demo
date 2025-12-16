@@ -1,0 +1,206 @@
+---
+sidebar_position: 2
+---
+
+# Examples
+
+Real-world examples and complete implementations.
+
+## React Examples
+
+### Basic Authentication
+
+```tsx
+import { useState } from 'react';
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+import '@thebbz/siwe-ethos-react/styles.css';
+
+export default function BasicAuth() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState(null);
+
+  if (user) {
+    return (
+      <div>
+        <h2>Welcome, {user.profile.displayName}!</h2>
+        <p>Score: {user.profile.score}</p>
+        <button onClick={() => setUser(null)}>Sign Out</button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <button onClick={() => setIsOpen(true)}>Sign In</button>
+      <EthosAuthModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSuccess={setUser}
+      />
+    </>
+  );
+}
+```
+
+### Protected Route
+
+```tsx
+import { useState, useEffect } from 'react';
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+
+function ProtectedContent() {
+  const [user, setUser] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    // Check for stored session
+    const stored = localStorage.getItem('ethos_user');
+    if (stored) {
+      setUser(JSON.parse(stored));
+    }
+  }, []);
+
+  if (!user) {
+    return (
+      <>
+        <div>
+          <h2>Protected Content</h2>
+          <p>Please sign in to access this content.</p>
+          <button onClick={() => setIsOpen(true)}>Sign In</button>
+        </div>
+        <EthosAuthModal
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          onSuccess={(result) => {
+            setUser(result);
+            localStorage.setItem('ethos_user', JSON.stringify(result));
+            setIsOpen(false);
+          }}
+        />
+      </>
+    );
+  }
+
+  return (
+    <div>
+      <h2>Welcome to Premium Content</h2>
+      <p>You have access because your score is {user.profile.score}</p>
+    </div>
+  );
+}
+```
+
+### Score-Based Access
+
+```tsx
+import { useState } from 'react';
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+
+const MIN_SCORE = 1000;
+
+function ScoreGatedContent() {
+  const [user, setUser] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleSuccess = (result) => {
+    if (result.profile.score < MIN_SCORE) {
+      alert(`Sorry, you need a score of ${MIN_SCORE} or higher to access this content.`);
+      return;
+    }
+    setUser(result);
+    setIsOpen(false);
+  };
+
+  return (
+    <>
+      {!user ? (
+        <button onClick={() => setIsOpen(true)}>
+          Sign In (Requires Score ≥ {MIN_SCORE})
+        </button>
+      ) : (
+        <div>
+          <h2>Premium Content</h2>
+          <p>Your score: {user.profile.score}</p>
+        </div>
+      )}
+      <EthosAuthModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSuccess={handleSuccess}
+      />
+    </>
+  );
+}
+```
+
+## SDK Examples
+
+### Wallet Authentication with wagmi
+
+```typescript
+import { EthosWalletAuth } from '@thebbz/siwe-ethos';
+import { useAccount, useSignMessage } from 'wagmi';
+
+function useEthosAuth() {
+  const { address } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+  const auth = EthosWalletAuth.init();
+
+  const signIn = async () => {
+    if (!address) {
+      throw new Error('No wallet connected');
+    }
+
+    try {
+      const result = await auth.signIn(address, signMessageAsync);
+      localStorage.setItem('ethos_token', result.accessToken);
+      return result.user;
+    } catch (error) {
+      console.error('Auth failed:', error);
+      throw error;
+    }
+  };
+
+  const signOut = () => {
+    localStorage.removeItem('ethos_token');
+  };
+
+  return { signIn, signOut };
+}
+```
+
+### Profile Lookup
+
+```typescript
+import { fetchEthosProfile } from '@thebbz/siwe-ethos';
+
+async function displayUserProfile(address: string) {
+  try {
+    const profile = await fetchEthosProfile('address', address);
+    
+    return {
+      name: profile.displayName || profile.username,
+      avatar: profile.avatar,
+      score: profile.score,
+      url: profile.profileUrl,
+    };
+  } catch (error) {
+    console.error('Profile not found');
+    return null;
+  }
+}
+```
+
+## Live Demo
+
+Check out the [live demo application](https://siwe-ethos-demo.vercel.app) to see all features in action!
+
+## More Examples
+
+See the [GitHub repository](https://github.com/thebbz/signinwithethos/tree/main/examples) for more examples including:
+
+- Next.js App Router
+- Next.js Pages Router
+- Vite + React
+- Express.js backend
+- Vercel serverless functions

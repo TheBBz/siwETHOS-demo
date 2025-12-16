@@ -1,0 +1,280 @@
+---
+sidebar_position: 4
+---
+
+# Social Authentication
+
+Authenticate users with their social accounts: Discord, Twitter, Farcaster, Telegram, and GitHub.
+
+## Overview
+
+Social authentication allows users to sign in using OAuth2 or provider-specific flows. All social auth methods check for an Ethos profile associated with the social account.
+
+## Supported Providers
+
+- **Discord** - OAuth2 redirect flow
+- **Twitter/X** - OAuth2 redirect flow
+- **Farcaster** - Sign-In with Farcaster (SIWF) protocol
+- **Telegram** - Telegram Login Widget
+- **GitHub** - OAuth2 redirect flow
+
+## How It Works
+
+Social authentication typically follows this flow:
+
+1. User clicks "Sign in with [Provider]"
+2. Redirect to provider's OAuth consent page
+3. User authorizes your application
+4. Provider redirects back with authorization code
+5. Server exchanges code for user data
+6. Server checks for Ethos profile linked to social account
+7. Returns authentication result with user data
+
+## Implementation
+
+Social authentication requires server-side endpoints to handle OAuth flows. The SDK is designed to work with your backend implementation.
+
+### Required Server Endpoints
+
+Your authentication server should implement these endpoints:
+
+| Provider | Endpoint | Method | Description |
+|----------|----------|--------|-------------|
+| Discord | `/auth/discord` | GET | Initiate Discord OAuth |
+| Discord | `/auth/discord/callback` | GET | Handle OAuth callback |
+| Twitter | `/auth/twitter` | GET | Initiate Twitter OAuth |
+| Twitter | `/auth/twitter/callback` | GET | Handle OAuth callback |
+| Farcaster | `/auth/farcaster` | GET | Show Farcaster QR code |
+| Farcaster | `/auth/farcaster/callback` | GET | Poll for completion |
+| Telegram | `/auth/telegram` | GET | Show Telegram widget |
+| GitHub | `/auth/github` | GET | Initiate GitHub OAuth |
+| GitHub | `/auth/github/callback` | GET | Handle OAuth callback |
+
+## Discord Authentication
+
+### Client-Side
+
+```javascript
+// Redirect user to Discord OAuth
+const redirectUri = 'https://yourapp.com/callback';
+const state = 'random-csrf-token';
+
+window.location.href = `${authServerUrl}/auth/discord?redirect_uri=${redirectUri}&state=${state}`;
+```
+
+### Server-Side (Example)
+
+```javascript
+// GET /auth/discord
+app.get('/auth/discord', (req, res) => {
+  const { redirect_uri, state } = req.query;
+  
+  const discordAuthUrl = `https://discord.com/api/oauth2/authorize?${new URLSearchParams({
+    client_id: process.env.DISCORD_CLIENT_ID,
+    redirect_uri: `${serverUrl}/auth/discord/callback`,
+    response_type: 'code',
+    scope: 'identify email',
+    state: JSON.stringify({ redirect_uri, state }),
+  })}`;
+  
+  res.redirect(discordAuthUrl);
+});
+
+// GET /auth/discord/callback
+app.get('/auth/discord/callback', async (req, res) => {
+  const { code, state } = req.query;
+  
+  // Exchange code for access token
+  const tokenData = await fetchDiscordToken(code);
+  const discordUser = await fetchDiscordUser(tokenData.access_token);
+  
+  // Check for Ethos profile
+  const ethosProfile = await fetchEthosProfile('discord', discordUser.id);
+  
+  if (!ethosProfile) {
+    return res.redirect(`${redirect_uri}?error=no_ethos_profile`);
+  }
+  
+  // Create JWT token
+  const accessToken = createJWT(ethosProfile);
+  
+  res.redirect(`${redirect_uri}?token=${accessToken}`);
+});
+```
+
+## Twitter Authentication
+
+Similar to Discord, but uses Twitter OAuth2:
+
+```javascript
+// Client-side
+window.location.href = `${authServerUrl}/auth/twitter?redirect_uri=${redirectUri}&state=${state}`;
+
+// Server handles OAuth with Twitter API
+// Checks for Ethos profile by Twitter username or ID
+```
+
+## Farcaster Authentication
+
+Farcaster uses a QR code-based flow (Sign-In with Farcaster):
+
+```javascript
+// Client-side: Open popup or modal with Farcaster QR
+const authWindow = window.open(
+  `${authServerUrl}/auth/farcaster?redirect_uri=${redirectUri}`,
+  'Farcaster Auth',
+  'width=400,height=600'
+);
+
+// Server generates QR code with Farcaster deep link
+// User scans with Warpcast app
+// Server polls for signature
+// Once signed, returns auth result
+```
+
+### Farcaster Flow Details
+
+1. Generate a SIWF message
+2. Create deep link: `https://warpcast.com/~/sign-in-with-farcaster?...`
+3. Show QR code to user
+4. User scans with Warpcast mobile app
+5. User signs message in app
+6. Server polls for signature
+7. Verify signature and check Ethos profile
+
+## Telegram Authentication
+
+Telegram uses the [Telegram Login Widget](https://core.telegram.org/widgets/login):
+
+```html
+<!-- Server renders Telegram widget -->
+<script 
+  async 
+  src="https://telegram.org/js/telegram-widget.js?22" 
+  data-telegram-login="your_bot_name"
+  data-size="large"
+  data-auth-url="${authServerUrl}/auth/telegram/callback"
+  data-request-access="write"
+></script>
+```
+
+When user completes Telegram auth, they're redirected to your callback with user data.
+
+## GitHub Authentication
+
+GitHub OAuth2 flow:
+
+```javascript
+// Client-side
+window.location.href = `${authServerUrl}/auth/github?redirect_uri=${redirectUri}&state=${state}`;
+
+// Server handles OAuth with GitHub API
+// Checks for Ethos profile by GitHub username or ID
+```
+
+## Using the React Components
+
+If you're using React, the SDK includes pre-built components that handle all social auth flows:
+
+```tsx
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+
+<EthosAuthModal 
+  isOpen={isOpen}
+  onClose={() => setIsOpen(false)}
+  onSuccess={(result) => {
+    console.log('Provider:', result.provider);
+    console.log('User:', result.profile);
+  }}
+  showProviders={['discord', 'twitter', 'farcaster']}
+/>
+```
+
+See the [React documentation](/docs/react/auth-modal) for details.
+
+## Handling Authentication Results
+
+After successful social authentication, you'll receive an auth result:
+
+```typescript
+interface AuthResult {
+  accessToken: string;
+  user: EthosUser;
+}
+
+interface EthosUser {
+  sub: string;
+  name: string;
+  picture: string | null;
+  ethosProfileId: number;
+  ethosScore: number;
+  authMethod: 'discord' | 'twitter' | 'farcaster' | 'telegram' | 'github';
+  socialProvider: string;
+  socialId: string;
+  // ... other fields
+}
+```
+
+## Error Handling
+
+Common errors:
+
+- `no_ethos_profile` - User's social account is not linked to an Ethos profile
+- `user_denied` - User rejected the OAuth authorization
+- `invalid_state` - CSRF token mismatch
+- `oauth_error` - Error from the OAuth provider
+
+```javascript
+// Handle callback with error
+const urlParams = new URLSearchParams(window.location.search);
+const error = urlParams.get('error');
+
+if (error === 'no_ethos_profile') {
+  // Redirect user to create profile
+  window.location.href = 'https://ethos.network';
+}
+```
+
+## Provider Configuration
+
+### Required OAuth Credentials
+
+For each provider, you'll need to create an OAuth application:
+
+1. **Discord**: [Discord Developer Portal](https://discord.com/developers/applications)
+   - Redirect URI: `https://yourserver.com/auth/discord/callback`
+   - Scopes: `identify`, `email`
+
+2. **Twitter**: [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
+   - OAuth 2.0 with PKCE
+   - Redirect URI: `https://yourserver.com/auth/twitter/callback`
+
+3. **Farcaster**: No OAuth app needed (uses SIWF protocol)
+
+4. **Telegram**: [Create a Telegram Bot](https://core.telegram.org/bots#6-botfather)
+   - Use @BotFather to create bot
+   - Get bot token
+   - Configure login widget domain
+
+5. **GitHub**: [GitHub OAuth Apps](https://github.com/settings/developers)
+   - Redirect URI: `https://yourserver.com/auth/github/callback`
+
+## Security Considerations
+
+:::warning Security Best Practices
+1. **Validate state parameter** - Prevent CSRF attacks
+2. **Use HTTPS** - All OAuth flows required secure connections
+3. **Verify tokens server-side** - Never trust client-provided tokens
+4. **Store secrets securely** - Use environment variables for OAuth credentials
+5. **Implement rate limiting** - Prevent abuse of auth endpoints
+:::
+
+## Self-Hosting
+
+If you're self-hosting the authentication server, you'll need to implement all provider endpoints. See the [Self-Hosting Guide](/docs/guides/integration#self-hosting) for a complete example.
+
+## Next Steps
+
+- [React Components](/docs/react/auth-modal) - Use pre-built UI for social auth
+- [API Reference](/docs/sdk/api-reference) - Complete SDK documentation
+- [Examples](/docs/guides/examples) - See working examples

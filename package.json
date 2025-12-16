@@ -5,12 +5,19 @@
   "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "pnpm docs:build && pnpm build:next",
+    "build:next": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "docs:dev": "docusaurus start",
+    "docs:build": "docusaurus build && rm -rf public/docs && cp -r build public/docs",
+    "docs:serve": "docusaurus serve",
+    "docs:clear": "docusaurus clear"
   },
   "dependencies": {
     "@bgd-labs/react-web3-icons": "^1.57.0",
+    "@docusaurus/core": "^3.6.3",
+    "@docusaurus/preset-classic": "^3.6.3",
     "@thebbz/siwe-ethos": "^1.2.0",
     "@thebbz/siwe-ethos-providers": "^1.2.0",
     "@thebbz/siwe-ethos-react": "^1.0.0",
@@ -24,6 +31,8 @@
     "react-dom": "19.2.0"
   },
   "devDependencies": {
+    "@docusaurus/module-type-aliases": "^3.6.3",
+    "@docusaurus/types": "^3.6.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.25",
     "@types/react": "^19",

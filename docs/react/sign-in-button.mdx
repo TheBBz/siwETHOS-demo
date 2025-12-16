@@ -1,0 +1,97 @@
+---
+sidebar_position: 4
+---
+
+# SignInButton
+
+Customizable sign-in button component.
+
+## Basic Usage
+
+```tsx
+import { SignInButton } from '@thebbz/siwe-ethos-react';
+
+function App() {
+  return (
+    <SignInButton
+      onSuccess={(result) => {
+        console.log('Signed in:', result.profile.displayName);
+      }}
+    />
+  );
+}
+```
+
+The button handles opening the modal, authentication, and callbacks automatically.
+
+## Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `onSuccess` | `(result: EthosAuthResult) => void` | Yes | Called on successful authentication |
+| `onError` | `(error: Error) => void` | No | Called on authentication error |
+| `baseUrl` | `string` | No | Custom auth server URL |
+| `showProviders` | `string[]` | No | Filter providers |
+| `children` | `ReactNode` | No | Custom button content |
+| `className` | `string` | No | Additional CSS classes |
+| `disabled` | `boolean` | No | Disable the button |
+
+## Customization
+
+### Custom Text
+
+```tsx
+<SignInButton onSuccess={handleSuccess}>
+  Connect Wallet
+</SignInButton>
+```
+
+### Custom Styling
+
+```tsx
+<SignInButton 
+  onSuccess={handleSuccess}
+  className="my-custom-button"
+>
+  Sign In
+</SignInButton>
+```
+
+```css
+.my-custom-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+```
+
+## Complete Example
+
+```tsx
+import { useState } from 'react';
+import { SignInButton, type EthosAuthResult } from '@thebbz/siwe-ethos-react';
+
+function App() {
+  const [user, setUser] = useState<EthosAuthResult | null>(null);
+
+  if (user) {
+    return (
+      <div>
+        <p>Welcome, {user.profile.displayName}!</p>
+        <button onClick={() => setUser(null)}>Sign Out</button>
+      </div>
+    );
+  }
+
+  return (
+    <SignInButton
+      onSuccess={setUser}
+      onError={(error) => console.error(error)}
+    >
+      Sign in with Ethos
+    </SignInButton>
+  );
+}
+```
