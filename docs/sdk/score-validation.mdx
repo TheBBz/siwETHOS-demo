@@ -10,13 +10,16 @@ Utilities for validating and working with Ethos credibility scores.
 
 Ethos credibility scores range from **0 to 2800**:
 
-- **0-699**: Very Low
-- **700-999**: Low
-- **1000-1299**: Fair
-- **1300-1599**: Good
-- **1600-1899**: Great
-- **1900-2199**: Excellent
-- **2200-2800**: Exemplary
+- **untrusted**
+- **questionable**
+- **neutral**
+- **known**
+- **established**
+- **reputable**
+- **exemplary**
+- **distinguished**
+- **revered**
+- **renowned**
 
 ## Validate Minimum Score
 
@@ -90,14 +93,16 @@ console.log(tier2); // 'exemplary'
 function getScoreTier(score: number): ScoreTier
 
 type ScoreTier =
-  | 'very_low'
-  | 'low' 
-  | 'fair'
-  | 'good'
-  | 'trusted'
-  | 'great'
-  | 'excellent'
-  | 'exemplary';
+  | 'untrusted'
+  | 'questionable'
+  | 'neutral'
+  | 'known'
+  | 'established'
+  | 'reputable'
+  | 'exemplary'
+  | 'distinguished'
+  | 'revered'
+  | 'renowned';
 ```
 
 ## Usage Examples
@@ -109,11 +114,14 @@ function getAccessLevel(user) {
   const tier = getScoreTier(user.ethosScore);
   
   switch (tier) {
+    case 'renowned':
+    case 'revered':
+    case 'distinguished':
     case 'exemplary':
-    case 'excellent':
       return 'premium';
-    case 'great':
-    case 'trusted':
+    case 'reputable':
+    case 'established':
+    case 'known':
       return 'standard';
     default:
       return 'basic';
@@ -151,25 +159,29 @@ function ScoreBadge({ score }) {
   const tier = getScoreTier(score);
   
   const colors = {
-    very_low: '#ef4444',
-    low: '#f97316',
-    fair: '#f59e0b',
-    good: '#84cc16',
-    trusted: '#10b981',
-    great: '#22c55e',
-    excellent: '#14b8a6',
-    exemplary: '#0ea5e9',
+    untrusted: '#ef4444',
+    questionable: '#f97316',
+    neutral: '#f59e0b',
+    known: '#84cc16',
+    established: '#10b981',
+    reputable: '#22c55e',
+    exemplary: '#14b8a6',
+    distinguished: '#0ea5e9',
+    revered: '#6366f1',
+    renowned: '#8b5cf6',
   };
   
   const labels = {
-    very_low: 'Very Low',
-    low: 'Low',
-    fair: 'Fair',
-    good: 'Good',
-    trusted: 'Trusted',
-    great: 'Great',
-    excellent: 'Excellent',
+    untrusted: 'Untrusted',
+    questionable: 'Questionable',
+    neutral: 'Neutral',
+    known: 'Known',
+    established: 'Established',
+    reputable: 'Reputable',
     exemplary: 'Exemplary',
+    distinguished: 'Distinguished',
+    revered: 'Revered',
+    renowned: 'Renowned',
   };
   
   return (
@@ -234,14 +246,16 @@ function getSubscriptionPrice(user) {
   const tier = getScoreTier(user.ethosScore);
   
   const prices = {
-    very_low: 99,
-    low: 79,
-    fair: 69,
-    good: 59,
-    trusted: 49,
-    great: 39,
-    excellent: 29,
-    exemplary: 19,
+    untrusted: 99,
+    questionable: 79,
+    neutral: 69,
+    known: 59,
+    established: 49,
+    reputable: 39,
+    exemplary: 29,
+    distinguished: 19,
+    revered: 9,
+    renowned: 0,
   };
   
   return prices[tier];
