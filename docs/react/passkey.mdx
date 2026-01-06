@@ -1,0 +1,278 @@
+---
+sidebar_position: 7
+---
+
+# Passkey Authentication
+
+WebAuthn/Passkey authentication for passwordless sign-in.
+
+## Overview
+
+Passkeys provide a secure, passwordless authentication experience using device biometrics (Face ID, Touch ID, Windows Hello) or security keys.
+
+## Enabling Passkeys
+
+Enable passkey authentication in the modal:
+
+```tsx
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+
+<EthosAuthModal
+  isOpen={isOpen}
+  onClose={onClose}
+  onSuccess={onSuccess}
+  showPasskey={true}  // Enable passkey option (default: false)
+/>
+```
+
+## How It Works
+
+The PasskeyView component provides two options:
+
+### Sign In Flow (Existing Passkey)
+
+1. User clicks "Use Passkey" from the main screen
+2. User clicks "Sign in with Passkey"
+3. Browser prompts for biometric verification (Face ID, Touch ID, PIN, etc.)
+4. User authenticates with their stored passkey
+5. User is signed in and profile is displayed
+
+### Create Passkey Flow (New User)
+
+1. User clicks "Use Passkey" from the main screen
+2. User clicks "Create new Passkey"
+3. User enters a username (display name for the passkey)
+4. Browser prompts for biometric verification
+5. Passkey credential is created and stored
+6. User is authenticated with their new account
+
+### Add Passkey Flow (Existing Account)
+
+After authenticating via wallet or social login, users can link a passkey to their account:
+
+1. User authenticates via wallet, Discord, Twitter, etc.
+2. Success screen shows with "Add Passkey" button
+3. User clicks "Add Passkey"
+4. Browser prompts for biometric verification
+5. Passkey is linked to their existing Ethos profile
+
+## Browser Support
+
+Passkeys require WebAuthn support. The modal automatically:
+- Detects if WebAuthn is supported
+- Shows appropriate UI or "Passkeys Not Supported" message
+- Only displays the passkey option when `showPasskey={true}`
+
+```typescript
+// Check support programmatically
+const supported = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+```
+
+### Supported Browsers
+
+| Browser | Version | Platform Authenticator |
+|---------|---------|----------------------|
+| Chrome | 67+ | Windows Hello, Touch ID |
+| Safari | 14+ | Touch ID, Face ID |
+| Firefox | 60+ | Windows Hello |
+| Edge | 79+ | Windows Hello |
+
+## Complete Example
+
+```tsx
+import { useState } from 'react';
+import { EthosAuthModal, type AuthResult } from '@thebbz/siwe-ethos-react';
+
+function PasskeyDemo() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<AuthResult['user'] | null>(null);
+
+  const handleSuccess = (result: AuthResult) => {
+    setUser(result.user);
+    setIsOpen(false);
+
+    // Check if authenticated via passkey
+    if (result.user.authMethod === 'passkey') {
+      console.log('Authenticated with passkey!');
+    }
+  };
+
+  return (
+    <div>
+      {user ? (
+        <div>
+          <p>Welcome, {user.name}!</p>
+          <p>Score: {user.ethosScore}</p>
+          <p>Auth method: {user.authMethod}</p>
+        </div>
+      ) : (
+        <button onClick={() => setIsOpen(true)}>
+          Sign In
+        </button>
+      )}
+
+      <EthosAuthModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSuccess={handleSuccess}
+        showPasskey={true}
+      />
+    </div>
+  );
+}
+```
+
+## Auth Result
+
+When authenticating with passkeys, the `AuthResult` includes:
+
+```typescript
+interface AuthResult {
+  accessToken: string;
+  tokenType: 'Bearer';
+  expiresIn: number;
+  user: {
+    sub: string;
+    name: string;
+    picture: string | null;
+    ethosProfileId: number;
+    ethosUsername: string | null;
+    ethosScore: number;
+    ethosStatus: string;
+    ethosAttestations: string[];
+    authMethod: 'passkey';  // Indicates passkey auth
+    profileUrl?: string;
+  };
+  refreshToken?: string;
+}
+```
+
+## SDK Usage
+
+For custom implementations, use the SDK directly:
+
+### Registration
+
+```typescript
+import { EthosAuth } from '@thebbz/siwe-ethos';
+
+const auth = EthosAuth.init();
+
+// 1. Get registration options from server
+const options = await auth.getWebAuthnRegistrationOptions('username');
+
+// 2. Create credential with browser API
+const credential = await navigator.credentials.create({
+  publicKey: {
+    challenge: base64UrlDecode(options.challenge),
+    rp: options.rp,
+    user: {
+      id: base64UrlDecode(options.user.id),
+      name: options.user.name,
+      displayName: options.user.displayName,
+    },
+    pubKeyCredParams: options.pubKeyCredParams,
+    timeout: options.timeout,
+    authenticatorSelection: options.authenticatorSelection,
+    attestation: options.attestation,
+  },
+});
+
+// 3. Verify with server
+const result = await auth.verifyWebAuthnRegistration({
+  id: credential.id,
+  rawId: base64UrlEncode(new Uint8Array(credential.rawId)),
+  type: credential.type,
+  response: {
+    clientDataJSON: base64UrlEncode(new Uint8Array(credential.response.clientDataJSON)),
+    attestationObject: base64UrlEncode(new Uint8Array(credential.response.attestationObject)),
+  },
+});
+
+console.log('Registered!', result.user);
+```
+
+### Authentication
+
+```typescript
+import { EthosAuth } from '@thebbz/siwe-ethos';
+
+const auth = EthosAuth.init();
+
+// 1. Get authentication options
+const options = await auth.getWebAuthnAuthenticationOptions();
+
+// 2. Get credential with browser API
+const credential = await navigator.credentials.get({
+  publicKey: {
+    challenge: base64UrlDecode(options.challenge),
+    rpId: options.rpId,
+    timeout: options.timeout,
+    userVerification: options.userVerification,
+    allowCredentials: options.allowCredentials?.map(c => ({
+      id: base64UrlDecode(c.id),
+      type: c.type,
+      transports: c.transports,
+    })),
+  },
+});
+
+// 3. Verify with server
+const result = await auth.verifyWebAuthnAuthentication({
+  id: credential.id,
+  rawId: base64UrlEncode(new Uint8Array(credential.rawId)),
+  type: credential.type,
+  response: {
+    clientDataJSON: base64UrlEncode(new Uint8Array(credential.response.clientDataJSON)),
+    authenticatorData: base64UrlEncode(new Uint8Array(credential.response.authenticatorData)),
+    signature: base64UrlEncode(new Uint8Array(credential.response.signature)),
+    userHandle: credential.response.userHandle
+      ? base64UrlEncode(new Uint8Array(credential.response.userHandle))
+      : null,
+  },
+});
+
+console.log('Authenticated!', result.user);
+```
+
+## Styling
+
+The PasskeyView inherits modal theming:
+
+```tsx
+<EthosAuthModal
+  showPasskey={true}
+  theme={{
+    accentColor: '#6366f1',
+    textPrimary: '#ffffff',
+    textSecondary: '#a1a1aa',
+    // ... other theme options
+  }}
+/>
+```
+
+## Error Handling
+
+Common errors and their causes:
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Passkeys Not Supported" | Browser doesn't support WebAuthn | Fall back to other auth methods |
+| "User cancelled" | User dismissed biometric prompt | Allow retry |
+| "Please enter a username" | Username field empty during registration | Prompt user to enter username |
+| "Authentication failed" | Credential verification failed | Check server logs, retry |
+| "Registration failed" | Could not create credential | Check browser console, retry |
+
+## Security Considerations
+
+- **Passkeys are phishing-resistant** - tied to the origin
+- **Private keys never leave the device** - only signatures are transmitted
+- **Biometric data stays local** - only verification result is used
+- **Replay protection** - challenge and counter prevent replay attacks
+- **Discoverable credentials** - browser can show all available passkeys for the site
+
+## Next Steps
+
+- [EthosAuthModal](/docs/react/auth-modal) - Full modal documentation
+- [SDK WebAuthn](/docs/sdk/api-reference#webauthn-methods) - SDK API reference
+- [WebAuthn Provider](/docs/providers/webauthn) - Server-side verification

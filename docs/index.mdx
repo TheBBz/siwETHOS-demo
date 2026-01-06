@@ -15,8 +15,10 @@ Sign in with Ethos enables developers to authenticate users using their Ethereum
 ## Key Features
 
 - 🔐 **Wallet Authentication** - SIWE (EIP-4361) compliant wallet authentication
+- 🔑 **Passkeys/WebAuthn** - Passwordless authentication with biometrics
 - 🌐 **Social Authentication** - Support for Discord, Twitter, Farcaster, Telegram, and GitHub
 - ⭐ **Reputation Scores** - Access user credibility scores from Ethos Network
+- 🛡️ **Server Middleware** - JWT verification for Express.js and Next.js
 - ⚛️ **React Components** - Beautiful, pre-built UI components
 - 🎨 **Customizable** - Fully customizable styling and theming
 - 📦 **TypeScript** - Full TypeScript support with comprehensive types
@@ -57,6 +59,39 @@ Sign in with Ethos enables developers to authenticate users using their Ethereum
   </div>
 </div>
 
+<div className="row margin-top--md">
+  <div className="col col--6">
+    <div className="card">
+      <div className="card__header">
+        <h3>🛡️ Server Middleware</h3>
+      </div>
+      <div className="card__body">
+        <p>JWT verification and authentication middleware for Express.js and Next.js.</p>
+      </div>
+      <div className="card__footer">
+        <a href="/docs/server/index" className="button button--primary button--block">
+          Get Started with Server
+        </a>
+      </div>
+    </div>
+  </div>
+  <div className="col col--6">
+    <div className="card">
+      <div className="card__header">
+        <h3>🔧 Providers</h3>
+      </div>
+      <div className="card__body">
+        <p>Low-level authentication providers including WebAuthn and profile enrichment.</p>
+      </div>
+      <div className="card__footer">
+        <a href="/docs/providers/index" className="button button--primary button--block">
+          Explore Providers
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 ## Installation
 
 Choose the package that fits your needs:
@@ -70,6 +105,9 @@ npm install @thebbz/siwe-ethos-react
 
 # For custom provider implementations
 npm install @thebbz/siwe-ethos-providers
+
+# For server-side middleware (Express/Next.js)
+npm install @thebbz/siwe-ethos-server
 ```
 
 ## Quick Example
@@ -84,14 +122,14 @@ function App() {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSuccess = (result) => {
-    console.log('Authenticated:', result.profile.displayName);
-    console.log('Ethos Score:', result.profile.score);
+    console.log('Authenticated:', result.user.name);
+    console.log('Ethos Score:', result.user.ethosScore);
   };
 
   return (
     <>
       <button onClick={() => setIsOpen(true)}>Sign In</button>
-      <EthosAuthModal 
+      <EthosAuthModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSuccess={handleSuccess}

@@ -1,0 +1,147 @@
+---
+sidebar_position: 1
+---
+
+# Server Middleware Overview
+
+Server-side authentication middleware for Express.js and Next.js applications.
+
+## What is @thebbz/siwe-ethos-server?
+
+The server middleware package provides utilities for verifying Ethos authentication tokens on your backend:
+
+- **JWT Verification** - Decode and verify Ethos JWT tokens
+- **Express Middleware** - Drop-in middleware for Express.js
+- **Next.js Middleware** - API route wrappers for Next.js App Router
+- **Score Validation** - Enforce minimum credibility score requirements
+- **Profile Enrichment** - Optionally fetch fresh profile data
+
+## Installation
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos-server
+```
+
+## Quick Start
+
+### Express.js
+
+```typescript
+import express from 'express';
+import { ethosAuthMiddleware } from '@thebbz/siwe-ethos-server/express';
+
+const app = express();
+
+// Protect all routes
+app.use(ethosAuthMiddleware());
+
+app.get('/api/profile', (req, res) => {
+  // Access authenticated user
+  const user = req.ethosUser;
+  res.json({
+    profileId: user.profileId,
+    score: user.score,
+    username: user.username,
+  });
+});
+```
+
+### Next.js (App Router)
+
+```typescript
+import { withEthosAuth } from '@thebbz/siwe-ethos-server/nextjs';
+
+export const GET = withEthosAuth(async (req, user) => {
+  return Response.json({
+    profileId: user.profileId,
+    score: user.score,
+    username: user.username,
+  });
+});
+```
+
+## Features
+
+### Token Extraction
+
+Automatically extracts tokens from:
+- `Authorization: Bearer <token>` header (default)
+- Cookies (configurable)
+- Query parameters (configurable)
+- Custom sources (via callback)
+
+### JWT Verification
+
+Two verification modes:
+- **Decode only** - Fast, no signature verification (for trusted environments)
+- **Full verification** - HMAC signature verification with your secret
+
+### Score Requirements
+
+Enforce minimum Ethos credibility scores:
+
+```typescript
+// Global minimum
+app.use(ethosAuthMiddleware({ minScore: 1000 }));
+
+// Per-route minimum
+app.get('/premium', requireMinScore(1500), handler);
+```
+
+### Profile Enrichment
+
+Optionally fetch full profile data from Ethos API:
+
+```typescript
+app.use(ethosAuthMiddleware({ fetchProfile: true }));
+
+// Now user.profile contains full EthosProfile
+app.get('/api/me', (req, res) => {
+  res.json(req.ethosUser.profile);
+});
+```
+
+## Authenticated User Object
+
+When authentication succeeds, you get an `EthosAuthUser`:
+
+```typescript
+interface EthosAuthUser {
+  sub: string;              // Subject (user ID)
+  profileId: number;        // Ethos profile ID
+  username: string | null;  // Ethos username
+  score: number;            // Credibility score
+  level: string;            // Score tier
+  authMethod: string;       // How user authenticated
+  walletAddress?: string;   // Wallet address (if wallet auth)
+  socialProvider?: string;  // Social provider (if social auth)
+  socialId?: string;        // Social account ID
+  claims: EthosJWTPayload;  // Raw JWT payload
+  profile?: EthosProfile;   // Full profile (if fetchProfile enabled)
+}
+```
+
+## Error Handling
+
+All errors follow a consistent format:
+
+```typescript
+{
+  error: 'invalid_token',
+  message: 'Token signature verification failed',
+  statusCode: 401
+}
+```
+
+Error codes:
+- `missing_token` - No token provided (401)
+- `invalid_token` - Token malformed or invalid (401)
+- `expired_token` - Token has expired (401)
+- `insufficient_score` - Score below minimum (403)
+- `verification_failed` - Signature verification failed (401)
+
+## Next Steps
+
+- [Express Middleware](/docs/server/express) - Detailed Express.js guide
+- [Next.js Middleware](/docs/server/nextjs) - Detailed Next.js guide
+- [JWT Utilities](/docs/server/jwt) - Low-level JWT functions

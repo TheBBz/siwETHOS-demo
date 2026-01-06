@@ -24,6 +24,7 @@ import {
   WalletProgressView,
   FarcasterQRView,
   TelegramWidgetView,
+  PasskeyView,
   SuccessView,
   ErrorView,
   SocialLoadingView,
@@ -59,14 +60,35 @@ export function EthosAuthModal({
   const [farcasterChannelToken, setFarcasterChannelToken] = useState<string | null>(null);
   const [farcasterDeepLink, setFarcasterDeepLink] = useState<string | null>(null);
 
+  // Passkey state
+  const [passkeySupported, setPasskeySupported] = useState(false);
+
   // Track processed OAuth codes to prevent re-processing
   const processedOAuthRef = useRef<string | null>(null);
 
-  // Check installed wallets on mount
+  // Check installed wallets and passkey support on mount
   useEffect(() => {
     setMounted(true);
     const installed = WALLETS.filter(w => w.checkInstalled()).map(w => w.id);
     setInstalledWallets(installed);
+
+    // Check WebAuthn support
+    const checkPasskeySupport = async () => {
+      if (typeof window === 'undefined') return;
+      try {
+        const available =
+          !!window.PublicKeyCredential &&
+          typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function';
+        if (available) {
+          const supported = await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          setPasskeySupported(supported);
+        }
+      } catch {
+        setPasskeySupported(false);
+      }
+    };
+    checkPasskeySupport();
+
     return () => setMounted(false);
   }, []);
 
@@ -512,8 +534,231 @@ export function EthosAuthModal({
     window.location.href = `/auth/twitter?redirect_uri=${redirectUri}&state=${state}`;
   };
 
+  // Passkey authentication
+  const connectPasskey = () => {
+    setView('passkey');
+    setError(null);
+  };
+
+  // Base64URL encoding/decoding helpers
+  const base64UrlEncode = (buffer: Uint8Array): string => {
+    const base64 = btoa(String.fromCharCode(...buffer));
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  };
+
+  const base64UrlDecode = (str: string): Uint8Array => {
+    const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedBase64 = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+    const binary = atob(paddedBase64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  };
+
+  const handlePasskeyAuth = useCallback(async () => {
+    setView('verifying');
+    setSocialProvider('passkey');
+
+    try {
+      // Get authentication options
+      const optionsRes = await fetch('/api/auth/webauthn/authenticate/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!optionsRes.ok) {
+        throw new Error('Failed to get authentication options');
+      }
+
+      const { options, sessionId } = await optionsRes.json();
+
+      // Decode challenge
+      const challengeBuffer = base64UrlDecode(options.challenge);
+
+      // Request credential
+      const credential = await navigator.credentials.get({
+        publicKey: {
+          ...options,
+          challenge: challengeBuffer.buffer as ArrayBuffer,
+          allowCredentials: options.allowCredentials?.map((cred: { id: string; type: string; transports?: string[] }) => ({
+            ...cred,
+            id: base64UrlDecode(cred.id).buffer as ArrayBuffer,
+          })) || [],
+        },
+      }) as PublicKeyCredential | null;
+
+      if (!credential) {
+        throw new Error('No credential returned');
+      }
+
+      const response = credential.response as AuthenticatorAssertionResponse;
+
+      // Serialize credential for server
+      const serializedCredential = {
+        id: credential.id,
+        rawId: base64UrlEncode(new Uint8Array(credential.rawId)),
+        type: credential.type,
+        response: {
+          clientDataJSON: base64UrlEncode(new Uint8Array(response.clientDataJSON)),
+          authenticatorData: base64UrlEncode(new Uint8Array(response.authenticatorData)),
+          signature: base64UrlEncode(new Uint8Array(response.signature)),
+          userHandle: response.userHandle ? base64UrlEncode(new Uint8Array(response.userHandle)) : undefined,
+        },
+      };
+
+      // Verify with server
+      const verifyRes = await fetch('/api/auth/webauthn/authenticate/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          credential: serializedCredential,
+          sessionId,
+        }),
+      });
+
+      if (!verifyRes.ok) {
+        const errorData = await verifyRes.json();
+        throw new Error(errorData.error || 'Authentication failed');
+      }
+
+      const data = await verifyRes.json();
+
+      setProfile(data.profile);
+      setView('success');
+      onSuccess?.({ code: data.code, address: '', profile: data.profile });
+    } catch (err) {
+      console.error('Passkey auth error:', err);
+      setError(err instanceof Error ? err.message : 'Authentication failed');
+      setView('error');
+    }
+  }, [onSuccess]);
+
+  const handlePasskeyRegister = useCallback(async (username: string, ethosProfileId?: number, fromSuccessView = false) => {
+    // Only change view if not registering from success view (which has its own loading state)
+    if (!fromSuccessView) {
+      setView('verifying');
+      setSocialProvider('passkey');
+    }
+
+    try {
+      // Get registration options
+      const optionsRes = await fetch('/api/auth/webauthn/register/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, ethosProfileId }),
+      });
+
+      if (!optionsRes.ok) {
+        throw new Error('Failed to get registration options');
+      }
+
+      const { options, userId } = await optionsRes.json();
+
+      // Decode challenge and user ID
+      const challengeBuffer = base64UrlDecode(options.challenge);
+      const userIdBuffer = base64UrlDecode(options.user.id);
+
+      // Create credential
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          ...options,
+          challenge: challengeBuffer.buffer as ArrayBuffer,
+          user: {
+            ...options.user,
+            id: userIdBuffer.buffer as ArrayBuffer,
+          },
+          excludeCredentials: options.excludeCredentials?.map((cred: { id: string; type: string; transports?: string[] }) => ({
+            ...cred,
+            id: base64UrlDecode(cred.id).buffer as ArrayBuffer,
+          })) || [],
+        },
+      }) as PublicKeyCredential | null;
+
+      if (!credential) {
+        throw new Error('No credential created');
+      }
+
+      const response = credential.response as AuthenticatorAttestationResponse;
+
+      // Get additional data from modern WebAuthn Level 2 API
+      const authenticatorData = response.getAuthenticatorData?.();
+      const publicKey = response.getPublicKey?.();
+      const publicKeyAlgorithm = response.getPublicKeyAlgorithm?.();
+
+      // Serialize credential for server
+      const serializedCredential = {
+        id: credential.id,
+        rawId: base64UrlEncode(new Uint8Array(credential.rawId)),
+        type: credential.type,
+        response: {
+          clientDataJSON: base64UrlEncode(new Uint8Array(response.clientDataJSON)),
+          attestationObject: base64UrlEncode(new Uint8Array(response.attestationObject)),
+          // Include Level 2 API data for easier server-side verification
+          authenticatorData: authenticatorData ? base64UrlEncode(new Uint8Array(authenticatorData)) : undefined,
+          publicKey: publicKey ? base64UrlEncode(new Uint8Array(publicKey)) : undefined,
+          publicKeyAlgorithm: publicKeyAlgorithm,
+          transports: response.getTransports?.() || [],
+        },
+      };
+
+      // Verify with server
+      const verifyRes = await fetch('/api/auth/webauthn/register/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          credential: serializedCredential,
+          userId,
+          username,
+          ethosProfile: profile ? {
+            profileId: profile.profileId,
+            username: profile.username,
+            displayName: profile.displayName,
+          } : undefined,
+        }),
+      });
+
+      if (!verifyRes.ok) {
+        const errorData = await verifyRes.json();
+        throw new Error(errorData.error || 'Registration failed');
+      }
+
+      const data = await verifyRes.json();
+
+      // If registering from success view (already authenticated), don't change the profile
+      if (!profile) {
+        setProfile(data.profile);
+        setView('success');
+        onSuccess?.({ code: data.code, address: '', profile: data.profile });
+      }
+      // Return success for post-auth registration
+      return data;
+    } catch (err) {
+      console.error('Passkey register error:', err);
+      // If not already authenticated, show error view
+      if (!profile) {
+        setError(err instanceof Error ? err.message : 'Registration failed');
+        setView('error');
+      }
+      throw err;
+    }
+  }, [onSuccess, profile]);
+
+  // Handler for adding passkey from success view (post-auth)
+  const handleAddPasskeyFromSuccess = useCallback(async () => {
+    if (!profile) {
+      throw new Error('No profile available');
+    }
+
+    // Use the authenticated user's info
+    const username = profile.username || profile.displayName || `user_${profile.profileId}`;
+    // Pass fromSuccessView=true to prevent view changes (SuccessView handles its own loading state)
+    await handlePasskeyRegister(username, profile.profileId, true);
+  }, [profile, handlePasskeyRegister]);
+
   const goBack = useCallback(() => {
-    if (view === 'error' || view === 'connecting' || view === 'wallet-select' || view === 'farcaster-qr' || view === 'telegram-widget') {
+    if (view === 'error' || view === 'connecting' || view === 'wallet-select' || view === 'farcaster-qr' || view === 'telegram-widget' || view === 'passkey') {
       setView('provider-select');
       setSelectedWallet(null);
       setError(null);
@@ -536,12 +781,13 @@ export function EthosAuthModal({
       case 'error': return 'Error';
       case 'farcaster-qr': return 'Sign in with Farcaster';
       case 'telegram-widget': return 'Sign in with Telegram';
+      case 'passkey': return 'Use Passkey';
       case 'signing-out': return 'Signing Out';
       default: return 'Sign In';
     }
   };
 
-  const showBackButton = view === 'error' || view === 'connecting' || view === 'wallet-select' || view === 'farcaster-qr' || view === 'telegram-widget';
+  const showBackButton = view === 'error' || view === 'connecting' || view === 'wallet-select' || view === 'farcaster-qr' || view === 'telegram-widget' || view === 'passkey';
 
   const modalContent = (
     <div
@@ -596,6 +842,8 @@ export function EthosAuthModal({
               onSelectDiscord={connectDiscord}
               onSelectTelegram={connectTelegram}
               onSelectTwitter={connectTwitter}
+              onSelectPasskey={connectPasskey}
+              passkeySupported={passkeySupported}
             />
           )}
 
@@ -619,6 +867,14 @@ export function EthosAuthModal({
               botUsername={TELEGRAM_BOT_USERNAME}
               onAuth={handleTelegramAuth}
               onCancel={goBack}
+            />
+          )}
+
+          {view === 'passkey' && (
+            <PasskeyView
+              onAuthenticate={handlePasskeyAuth}
+              onCancel={goBack}
+              isSupported={passkeySupported}
             />
           )}
 
@@ -664,6 +920,8 @@ export function EthosAuthModal({
                 // Show sign out animation
                 setView('signing-out');
               }}
+              onAddPasskey={handleAddPasskeyFromSuccess}
+              passkeySupported={passkeySupported}
             />
           )}
 

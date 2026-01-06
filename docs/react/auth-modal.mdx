@@ -11,6 +11,7 @@ Complete authentication modal with wallet and social login support.
 `EthosAuthModal` is the main component for authentication. It provides a beautiful, animated modal that handles:
 
 - Wallet selection and connection
+- Passkey/WebAuthn authentication (Face ID, Touch ID, Windows Hello)
 - Social authentication (Discord, Twitter, Farcaster, Telegram, GitHub)
 - Error handling and user feedback
 - Recent login history
@@ -27,15 +28,16 @@ function App() {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSuccess = (result) => {
-    console.log('Profile:', result.profile);
-    console.log('Provider:', result.provider);
+    console.log('User:', result.user.name);
+    console.log('Score:', result.user.ethosScore);
+    console.log('Auth Method:', result.user.authMethod);
     setIsOpen(false);
   };
 
   return (
     <>
       <button onClick={() => setIsOpen(true)}>Sign In</button>
-      
+
       <EthosAuthModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
@@ -48,33 +50,43 @@ function App() {
 
 ## Props
 
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `isOpen` | `boolean` | Yes | Controls modal visibility |
-| `onClose` | `() => void` | Yes | Called when modal should close |
-| `onSuccess` | `(result: EthosAuthResult) => void` | Yes | Called on successful authentication |
-| `baseUrl` | `string` | No | Custom auth server URL |
-| `showProviders` | `string[]` | No | Filter which providers to show |
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `isOpen` | `boolean` | Yes | - | Controls modal visibility |
+| `onClose` | `() => void` | Yes | - | Called when modal should close |
+| `onSuccess` | `(result: EthosAuthResult) => void` | Yes | - | Called on successful authentication |
+| `baseUrl` | `string` | No | `undefined` | Custom auth server URL |
+| `showProviders` | `string[]` | No | All providers | Filter which providers to show |
+| `showPasskey` | `boolean` | No | `false` | Enable passkey/WebAuthn authentication |
+| `telegramBotUsername` | `string` | No | `undefined` | Telegram bot username for widget login |
+| `termsUrl` | `string` | No | Ethos terms | Custom terms of service URL |
+| `privacyUrl` | `string` | No | Ethos privacy | Custom privacy policy URL |
 
 ## Authentication Result
 
-The `onSuccess` callback receives an `EthosAuthResult`:
+The `onSuccess` callback receives an `AuthResult`:
 
 ```typescript
-interface EthosAuthResult {
-  profile: {
-    id: number;
-    address: string;
-    primaryAddress: string;
-    displayName: string | null;
-    username: string | null;
-    description: string | null;
-    avatar: string | null;
-    score: number;
-    profileUrl: string;
+interface AuthResult {
+  accessToken: string;
+  tokenType: 'Bearer';
+  expiresIn: number;
+  user: {
+    sub: string;
+    name: string;
+    picture: string | null;
+    ethosProfileId: number;
+    ethosUsername: string | null;
+    ethosScore: number;
+    ethosStatus: string;
+    ethosAttestations: string[];
+    authMethod: 'wallet' | 'discord' | 'twitter' | 'farcaster' | 'telegram' | 'github' | 'passkey';
+    walletAddress?: string;
+    socialProvider?: string;
+    socialId?: string;
+    profileUrl?: string;
   };
-  provider: 'wallet' | 'farcaster' | 'discord' | 'twitter' | 'telegram' | 'github';
-  providerData?: any;
+  refreshToken?: string;
 }
 ```
 
@@ -115,39 +127,74 @@ Show only social providers:
 />
 ```
 
+### Enable Passkeys
+
+```tsx
+<EthosAuthModal
+  isOpen={isOpen}
+  onClose={onClose}
+  onSuccess={onSuccess}
+  showPasskey={true}
+/>
+```
+
+### With Telegram Widget
+
+```tsx
+<EthosAuthModal
+  isOpen={isOpen}
+  onClose={onClose}
+  onSuccess={onSuccess}
+  telegramBotUsername="YourBotUsername"
+/>
+```
+
+### Custom Legal Links
+
+```tsx
+<EthosAuthModal
+  isOpen={isOpen}
+  onClose={onClose}
+  onSuccess={onSuccess}
+  termsUrl="https://yoursite.com/terms"
+  privacyUrl="https://yoursite.com/privacy"
+/>
+```
+
 ### Complete Example
 
 ```tsx
 import { useState } from 'react';
-import { EthosAuthModal, type EthosAuthResult } from '@thebbz/siwe-ethos-react';
+import { EthosAuthModal } from '@thebbz/siwe-ethos-react';
+import type { AuthResult } from '@thebbz/siwe-ethos';
 
 function AuthExample() {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<EthosAuthResult | null>(null);
+  const [user, setUser] = useState<AuthResult['user'] | null>(null);
 
-  const handleSuccess = (result: EthosAuthResult) => {
-    setUser(result);
-    localStorage.setItem('ethos_user', JSON.stringify(result));
+  const handleSuccess = (result: AuthResult) => {
+    setUser(result.user);
+    localStorage.setItem('ethos_token', result.accessToken);
     setIsOpen(false);
-    
+
     console.log('Authenticated!');
-    console.log('Display Name:', result.profile.displayName);
-    console.log('Score:', result.profile.score);
-    console.log('Provider:', result.provider);
+    console.log('Display Name:', result.user.name);
+    console.log('Score:', result.user.ethosScore);
+    console.log('Auth Method:', result.user.authMethod);
   };
 
   const handleSignOut = () => {
     setUser(null);
-    localStorage.removeItem('ethos_user');
+    localStorage.removeItem('ethos_token');
   };
 
   return (
     <div>
       {user ? (
         <div>
-          <img src={user.profile.avatar} alt={user.profile.displayName || 'User'} />
-          <p>{user.profile.displayName || user.profile.username}</p>
-          <p>Score: {user.profile.score}</p>
+          <img src={user.picture || ''} alt={user.name || 'User'} />
+          <p>{user.name || user.ethosUsername}</p>
+          <p>Score: {user.ethosScore}</p>
           <button onClick={handleSignOut}>Sign Out</button>
         </div>
       ) : (
@@ -187,12 +234,14 @@ function AuthExample() {
 
 The modal has several internal views:
 
-1. **Main Select** - Choose between wallet and social authentication
+1. **Main Select** - Choose between wallet, passkey, and social authentication
 2. **Wallet Select** - Choose which wallet to connect
-3. **Social Select** - Choose social provider
-4. **Connecting** - Loading state during authentication
-5. **Success** - Shows user profile after successful auth
-6. **Error** - Displays error messages
+3. **Passkey View** - Sign in or register with passkey (Face ID, Touch ID, etc.)
+4. **Social Select** - Choose social provider
+5. **Telegram Widget** - Embedded Telegram login widget
+6. **Connecting** - Loading state during authentication
+7. **Success** - Shows user profile after successful auth
+8. **Error** - Displays error messages
 
 ## Error Handling
 
@@ -233,6 +282,7 @@ The modal is fully accessible:
 
 ## Next Steps
 
+- [Passkey Authentication](/docs/react/passkey) - Learn about passkey/WebAuthn
 - [Styling](/docs/react/styling) - Customize the modal appearance
 - [SignInButton](/docs/react/sign-in-button) - Use the sign-in button
 - [Hooks](/docs/react/hooks) - Manage auth state

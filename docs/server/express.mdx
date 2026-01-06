@@ -1,0 +1,314 @@
+---
+sidebar_position: 2
+---
+
+# Express Middleware
+
+Drop-in authentication middleware for Express.js applications.
+
+## Installation
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos-server express
+```
+
+## Basic Usage
+
+```typescript
+import express from 'express';
+import { ethosAuthMiddleware } from '@thebbz/siwe-ethos-server/express';
+
+const app = express();
+
+// Apply to all routes
+app.use(ethosAuthMiddleware());
+
+// Access authenticated user in routes
+app.get('/api/profile', (req, res) => {
+  res.json({
+    id: req.ethosUser.profileId,
+    score: req.ethosUser.score,
+  });
+});
+
+app.listen(3000);
+```
+
+## Configuration
+
+```typescript
+import { ethosAuthMiddleware, type EthosMiddlewareConfig } from '@thebbz/siwe-ethos-server/express';
+
+const config: EthosMiddlewareConfig = {
+  // Minimum score required (optional)
+  minScore: 1000,
+
+  // JWT secret for signature verification (optional)
+  // If not provided, tokens are decoded but NOT verified
+  secret: process.env.ETHOS_JWT_SECRET,
+
+  // Custom token extraction (optional)
+  extractToken: (req) => req.cookies.ethos_token,
+
+  // Fetch fresh profile from Ethos API (optional, default: false)
+  fetchProfile: true,
+
+  // Paths to skip authentication (optional)
+  skipPaths: ['/health', '/public/*'],
+
+  // Custom error handler (optional)
+  onError: (error, req, res) => {
+    console.error('Auth error:', error);
+    res.status(error.statusCode).json({ error: error.message });
+  },
+};
+
+app.use(ethosAuthMiddleware(config));
+```
+
+## Middleware Functions
+
+### `ethosAuthMiddleware(config?)`
+
+Main middleware factory. Returns Express middleware that:
+1. Extracts token from request
+2. Decodes/verifies JWT
+3. Optionally fetches profile
+4. Attaches `req.ethosUser` on success
+5. Calls error handler on failure
+
+```typescript
+app.use(ethosAuthMiddleware({
+  minScore: 500,
+  secret: process.env.JWT_SECRET,
+}));
+```
+
+### `requireEthosUser()`
+
+Middleware to ensure user is authenticated. Use after `ethosAuthMiddleware`:
+
+```typescript
+import { ethosAuthMiddleware, requireEthosUser } from '@thebbz/siwe-ethos-server/express';
+
+// Optional auth on all routes
+app.use(ethosAuthMiddleware({ /* config without throwing */ }));
+
+// Require auth on specific routes
+app.get('/api/private', requireEthosUser(), (req, res) => {
+  // req.ethosUser is guaranteed to exist
+  res.json(req.ethosUser);
+});
+```
+
+### `requireMinScore(minScore)`
+
+Middleware for route-specific score requirements:
+
+```typescript
+import { ethosAuthMiddleware, requireMinScore } from '@thebbz/siwe-ethos-server/express';
+
+app.use(ethosAuthMiddleware());
+
+// Standard routes - any authenticated user
+app.get('/api/profile', (req, res) => { ... });
+
+// Premium routes - require high score
+app.get('/api/premium', requireMinScore(1500), (req, res) => {
+  // Only users with score >= 1500 reach here
+});
+
+// VIP routes - require very high score
+app.post('/api/vip/action', requireMinScore(2000), (req, res) => {
+  // Only users with score >= 2000 reach here
+});
+```
+
+### `getEthosUser(req)`
+
+Type-safe helper to extract user from request:
+
+```typescript
+import { getEthosUser } from '@thebbz/siwe-ethos-server/express';
+
+app.get('/api/optional', (req, res) => {
+  const user = getEthosUser(req);
+  if (user) {
+    res.json({ authenticated: true, score: user.score });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+```
+
+## Token Extraction
+
+### Default: Bearer Token
+
+```typescript
+// Automatically extracts from Authorization header
+// Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+app.use(ethosAuthMiddleware());
+```
+
+### From Cookies
+
+```typescript
+import { ethosAuthMiddleware, extractTokenFromCookie } from '@thebbz/siwe-ethos-server/express';
+
+app.use(ethosAuthMiddleware({
+  extractToken: extractTokenFromCookie('ethos_token'),
+}));
+```
+
+### From Query Parameter
+
+```typescript
+import { ethosAuthMiddleware, extractTokenFromQuery } from '@thebbz/siwe-ethos-server/express';
+
+app.use(ethosAuthMiddleware({
+  extractToken: extractTokenFromQuery('token'),
+}));
+
+// Now accepts: /api/profile?token=eyJhbGciOiJIUzI1NiIs...
+```
+
+### Custom Extraction
+
+```typescript
+app.use(ethosAuthMiddleware({
+  extractToken: (req) => {
+    // Try header first, then cookie
+    return req.headers['x-ethos-token'] as string
+      || req.cookies.ethos_token
+      || null;
+  },
+}));
+```
+
+## Skip Paths
+
+Skip authentication for specific paths:
+
+```typescript
+app.use(ethosAuthMiddleware({
+  skipPaths: [
+    '/health',           // Exact match
+    '/public/*',         // Glob pattern
+    '/api/webhook/*',    // All webhooks
+  ],
+}));
+```
+
+## Error Handling
+
+### Default Behavior
+
+Returns JSON error response:
+
+```json
+{
+  "error": "invalid_token",
+  "message": "Token has expired"
+}
+```
+
+### Custom Error Handler
+
+```typescript
+app.use(ethosAuthMiddleware({
+  onError: (error, req, res) => {
+    // Log for monitoring
+    console.error(`Auth failed: ${error.code}`, {
+      path: req.path,
+      ip: req.ip,
+    });
+
+    // Custom response format
+    res.status(error.statusCode).json({
+      success: false,
+      error: {
+        code: error.code,
+        message: error.message,
+      },
+    });
+  },
+}));
+```
+
+## Complete Example
+
+```typescript
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import {
+  ethosAuthMiddleware,
+  requireMinScore,
+  extractTokenFromCookie,
+  getEthosUser,
+} from '@thebbz/siwe-ethos-server/express';
+
+const app = express();
+app.use(cookieParser());
+
+// Auth middleware with full config
+app.use(ethosAuthMiddleware({
+  secret: process.env.JWT_SECRET,
+  extractToken: extractTokenFromCookie('ethos_session'),
+  fetchProfile: true,
+  skipPaths: ['/health', '/api/public/*'],
+  onError: (error, req, res) => {
+    res.status(error.statusCode).json({ error: error.message });
+  },
+}));
+
+// Public route (skipped)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Authenticated route
+app.get('/api/me', (req, res) => {
+  const user = getEthosUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  res.json({
+    profileId: user.profileId,
+    username: user.username,
+    score: user.score,
+    profile: user.profile, // Full profile if fetchProfile enabled
+  });
+});
+
+// Premium route with score requirement
+app.post('/api/premium/action', requireMinScore(1500), (req, res) => {
+  res.json({ message: 'Premium action completed' });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
+```
+
+## TypeScript Support
+
+The middleware extends Express's `Request` type:
+
+```typescript
+import type { Request } from 'express';
+import type { EthosAuthUser } from '@thebbz/siwe-ethos-server';
+
+// req.ethosUser is typed as EthosAuthUser | undefined
+app.get('/api/profile', (req: Request, res) => {
+  if (req.ethosUser) {
+    // TypeScript knows user is EthosAuthUser here
+    const { profileId, score } = req.ethosUser;
+  }
+});
+```
+
+## Next Steps
+
+- [Next.js Middleware](/docs/server/nextjs) - For Next.js applications
+- [JWT Utilities](/docs/server/jwt) - Low-level JWT functions

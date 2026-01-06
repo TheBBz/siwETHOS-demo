@@ -36,6 +36,16 @@ export const WalletIcon = ({ className = "w-6 h-6" }: { className?: string }) =>
   </svg>
 );
 
+export const PasskeyIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+    <path d="M12 10v4" />
+    <path d="M10 16h4" />
+    <path d="M12 14v6" />
+    <circle cx="12" cy="7" r="5" strokeDasharray="2 2" />
+  </svg>
+);
+
 export const EthosLogo = ({ className = "w-16 h-16" }: { className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"

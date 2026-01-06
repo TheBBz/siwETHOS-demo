@@ -1,0 +1,304 @@
+---
+sidebar_position: 4
+---
+
+# JWT Utilities
+
+Low-level JWT decoding and verification functions.
+
+## Overview
+
+The JWT utilities allow you to work directly with Ethos authentication tokens without using the Express or Next.js middleware.
+
+## Decoding (No Verification)
+
+### `decodeJWT(token)`
+
+Decode a JWT without verifying the signature. Fast, but only use in trusted environments.
+
+```typescript
+import { decodeJWT } from '@thebbz/siwe-ethos-server';
+
+const result = decodeJWT(token);
+
+if (result.success) {
+  console.log('Header:', result.jwt.header);
+  console.log('Payload:', result.jwt.payload);
+  console.log('Profile ID:', result.jwt.payload.ethosProfileId);
+  console.log('Score:', result.jwt.payload.ethosScore);
+} else {
+  console.error('Decode failed:', result.error);
+}
+```
+
+### `getJWTPayload(token)`
+
+Quick helper to extract just the payload:
+
+```typescript
+import { getJWTPayload } from '@thebbz/siwe-ethos-server';
+
+const payload = getJWTPayload(token);
+
+if (payload) {
+  console.log('User:', payload.sub);
+  console.log('Score:', payload.ethosScore);
+}
+```
+
+## Verification (With Signature Check)
+
+### `verifyJWT(token, secret, options?)`
+
+Full JWT verification with HMAC signature check:
+
+```typescript
+import { verifyJWT } from '@thebbz/siwe-ethos-server';
+
+const result = await verifyJWT(token, process.env.JWT_SECRET, {
+  issuer: 'https://ethos.thebbz.xyz',
+  clockTolerance: 60, // 60 seconds tolerance
+});
+
+if (result.success) {
+  console.log('Verified payload:', result.payload);
+} else {
+  console.error('Verification failed:', result.error);
+}
+```
+
+### `verifyJWTSync(token, options?)`
+
+Synchronous verification (validates claims but NOT signature):
+
+```typescript
+import { verifyJWTSync } from '@thebbz/siwe-ethos-server';
+
+const result = verifyJWTSync(token, {
+  issuer: 'https://ethos.thebbz.xyz',
+});
+
+if (result.success) {
+  // Claims are valid (exp, nbf, iss checked)
+  // But signature was NOT verified
+}
+```
+
+## Expiration Checks
+
+### `isJWTExpired(payload, clockTolerance?)`
+
+Check if a token has expired:
+
+```typescript
+import { decodeJWT, isJWTExpired } from '@thebbz/siwe-ethos-server';
+
+const result = decodeJWT(token);
+if (result.success) {
+  if (isJWTExpired(result.jwt.payload)) {
+    console.log('Token has expired');
+  }
+
+  // With 60 second tolerance
+  if (isJWTExpired(result.jwt.payload, 60)) {
+    console.log('Token expired (with tolerance)');
+  }
+}
+```
+
+### `isJWTNotYetValid(payload, clockTolerance?)`
+
+Check the `nbf` (not before) claim:
+
+```typescript
+import { decodeJWT, isJWTNotYetValid } from '@thebbz/siwe-ethos-server';
+
+const result = decodeJWT(token);
+if (result.success) {
+  if (isJWTNotYetValid(result.jwt.payload)) {
+    console.log('Token not yet valid');
+  }
+}
+```
+
+### `getJWTTimeRemaining(payload)`
+
+Get seconds until expiration:
+
+```typescript
+import { decodeJWT, getJWTTimeRemaining } from '@thebbz/siwe-ethos-server';
+
+const result = decodeJWT(token);
+if (result.success) {
+  const remaining = getJWTTimeRemaining(result.jwt.payload);
+  if (remaining !== null) {
+    console.log(`Token expires in ${remaining} seconds`);
+  }
+}
+```
+
+## Token Payload Structure
+
+Ethos JWT tokens contain:
+
+```typescript
+interface EthosJWTPayload {
+  // Standard JWT claims
+  sub: string;              // Subject (user identifier)
+  iat: number;              // Issued at (Unix timestamp)
+  exp: number;              // Expiration (Unix timestamp)
+  iss?: string;             // Issuer
+  aud?: string | string[];  // Audience
+
+  // Ethos-specific claims
+  ethosProfileId: number;   // Ethos profile ID
+  ethosUsername?: string;   // Ethos username
+  ethosScore: number;       // Credibility score
+  ethosLevel?: string;      // Score tier
+
+  // Authentication context
+  authMethod: string;       // 'wallet' | 'discord' | 'twitter' | etc.
+  walletAddress?: string;   // For wallet auth
+  socialProvider?: string;  // For social auth
+  socialId?: string;        // Social account ID
+}
+```
+
+## Verification Options
+
+```typescript
+interface JWTVerifyOptions {
+  // Expected issuer (iss claim)
+  issuer?: string;
+
+  // Expected audience (aud claim)
+  audience?: string | string[];
+
+  // Clock tolerance in seconds (default: 0)
+  clockTolerance?: number;
+
+  // Skip expiration check
+  ignoreExpiration?: boolean;
+}
+```
+
+## Testing Utilities
+
+### `createTestJWT(payload, secret)`
+
+Generate test tokens for development:
+
+```typescript
+import { createTestJWT, type EthosJWTPayload } from '@thebbz/siwe-ethos-server';
+
+const testPayload: EthosJWTPayload = {
+  sub: 'test-user',
+  iat: Math.floor(Date.now() / 1000),
+  exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour
+  ethosProfileId: 12345,
+  ethosScore: 1500,
+  authMethod: 'wallet',
+  walletAddress: '0x1234...5678',
+};
+
+const token = await createTestJWT(testPayload, 'test-secret');
+console.log('Test token:', token);
+```
+
+## Base64URL Utilities
+
+For working with JWT components:
+
+```typescript
+import { base64UrlEncode, base64UrlDecode } from '@thebbz/siwe-ethos-server';
+
+// Encode
+const encoded = base64UrlEncode('Hello World');
+
+// Decode
+const decoded = base64UrlDecode(encoded);
+```
+
+## Error Types
+
+```typescript
+interface DecodeResult {
+  success: true;
+  jwt: DecodedJWT;
+} | {
+  success: false;
+  error: string;
+}
+
+interface VerifyResult {
+  success: true;
+  payload: EthosJWTPayload;
+} | {
+  success: false;
+  error: string;
+}
+```
+
+## Security Considerations
+
+### When to Use Decode vs Verify
+
+| Function | Signature Check | Use Case |
+|----------|-----------------|----------|
+| `decodeJWT()` | No | Behind trusted proxy, debugging |
+| `verifyJWT()` | Yes (HMAC) | Direct client requests |
+
+### Best Practices
+
+1. **Always verify in production** when receiving tokens directly from clients
+2. **Use clock tolerance** to handle minor clock skew between servers
+3. **Check expiration** before trusting token contents
+4. **Keep secrets secure** - use environment variables, rotate periodically
+
+## Complete Example
+
+```typescript
+import {
+  decodeJWT,
+  verifyJWT,
+  isJWTExpired,
+  getJWTTimeRemaining,
+} from '@thebbz/siwe-ethos-server';
+
+async function validateToken(token: string) {
+  // Quick decode for logging
+  const decoded = decodeJWT(token);
+  if (!decoded.success) {
+    return { valid: false, error: 'Malformed token' };
+  }
+
+  // Check expiration before expensive verification
+  if (isJWTExpired(decoded.jwt.payload)) {
+    return { valid: false, error: 'Token expired' };
+  }
+
+  // Full verification
+  const verified = await verifyJWT(token, process.env.JWT_SECRET!, {
+    issuer: 'https://ethos.thebbz.xyz',
+    clockTolerance: 30,
+  });
+
+  if (!verified.success) {
+    return { valid: false, error: verified.error };
+  }
+
+  return {
+    valid: true,
+    user: {
+      profileId: verified.payload.ethosProfileId,
+      score: verified.payload.ethosScore,
+      expiresIn: getJWTTimeRemaining(verified.payload),
+    },
+  };
+}
+```
+
+## Next Steps
+
+- [Express Middleware](/docs/server/express) - Use with Express.js
+- [Next.js Middleware](/docs/server/nextjs) - Use with Next.js

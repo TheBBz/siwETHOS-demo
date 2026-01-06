@@ -1,0 +1,333 @@
+---
+sidebar_position: 3
+---
+
+# Next.js Middleware
+
+API route wrappers for Next.js App Router.
+
+## Installation
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos-server next
+```
+
+## Basic Usage
+
+```typescript
+// app/api/profile/route.ts
+import { withEthosAuth } from '@thebbz/siwe-ethos-server/nextjs';
+
+export const GET = withEthosAuth(async (req, user) => {
+  return Response.json({
+    profileId: user.profileId,
+    score: user.score,
+    username: user.username,
+  });
+});
+```
+
+## API Route Wrappers
+
+### `withEthosAuth(handler, config?)`
+
+Wraps a handler to require authentication. Returns 401 if not authenticated.
+
+```typescript
+import { withEthosAuth } from '@thebbz/siwe-ethos-server/nextjs';
+
+// Handler receives authenticated user as second parameter
+export const GET = withEthosAuth(async (req, user) => {
+  // user is guaranteed to be authenticated
+  return Response.json({ score: user.score });
+});
+
+// With configuration
+export const POST = withEthosAuth(
+  async (req, user) => {
+    const body = await req.json();
+    return Response.json({ success: true });
+  },
+  {
+    secret: process.env.JWT_SECRET,
+    minScore: 1000,
+  }
+);
+```
+
+### `withOptionalEthosAuth(handler, config?)`
+
+Wraps a handler with optional authentication. User may be `null`.
+
+```typescript
+import { withOptionalEthosAuth } from '@thebbz/siwe-ethos-server/nextjs';
+
+export const GET = withOptionalEthosAuth(async (req, user) => {
+  if (user) {
+    // Personalized response for authenticated users
+    return Response.json({
+      greeting: `Hello, ${user.username}!`,
+      score: user.score,
+    });
+  } else {
+    // Generic response for anonymous users
+    return Response.json({
+      greeting: 'Hello, guest!',
+    });
+  }
+});
+```
+
+### `requireScore(minScore, handler)`
+
+Composable wrapper to add score requirements:
+
+```typescript
+import { withEthosAuth, requireScore } from '@thebbz/siwe-ethos-server/nextjs';
+
+// Require authentication + minimum score of 1500
+export const POST = withEthosAuth(
+  requireScore(1500, async (req, user) => {
+    // Only users with score >= 1500 reach here
+    return Response.json({ premium: true });
+  })
+);
+```
+
+## Configuration
+
+```typescript
+import { withEthosAuth, type EthosMiddlewareConfig } from '@thebbz/siwe-ethos-server/nextjs';
+
+const config: EthosMiddlewareConfig = {
+  // Minimum score required (optional)
+  minScore: 1000,
+
+  // JWT secret for signature verification (optional)
+  secret: process.env.ETHOS_JWT_SECRET,
+
+  // Custom token extraction (optional)
+  extractToken: (req) => req.cookies.get('ethos_token')?.value ?? null,
+
+  // Fetch fresh profile from Ethos API (optional)
+  fetchProfile: true,
+
+  // Custom error handler (optional)
+  onError: (error) => {
+    return Response.json(
+      { error: error.message },
+      { status: error.statusCode }
+    );
+  },
+};
+
+export const GET = withEthosAuth(handler, config);
+```
+
+## Token Extraction
+
+### Default: Bearer Token
+
+```typescript
+// Automatically extracts from Authorization header
+// Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+export const GET = withEthosAuth(handler);
+```
+
+### From Cookies
+
+```typescript
+import { withEthosAuth, extractTokenFromCookie } from '@thebbz/siwe-ethos-server/nextjs';
+
+export const GET = withEthosAuth(handler, {
+  extractToken: extractTokenFromCookie('ethos_session'),
+});
+```
+
+### Custom Extraction
+
+```typescript
+export const GET = withEthosAuth(handler, {
+  extractToken: (req) => {
+    // Try custom header first
+    const customToken = req.headers.get('x-ethos-token');
+    if (customToken) return customToken;
+
+    // Fall back to cookie
+    return req.cookies.get('ethos_token')?.value ?? null;
+  },
+});
+```
+
+## Error Handling
+
+### Default Behavior
+
+Returns JSON error response:
+
+```json
+{
+  "error": "invalid_token",
+  "message": "Token has expired"
+}
+```
+
+### Custom Error Handler
+
+```typescript
+export const GET = withEthosAuth(handler, {
+  onError: (error) => {
+    // Log for monitoring
+    console.error('Auth error:', error.code);
+
+    // Custom response
+    return Response.json(
+      {
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      },
+      { status: error.statusCode }
+    );
+  },
+});
+```
+
+## Complete Example
+
+```typescript
+// app/api/user/route.ts
+import {
+  withEthosAuth,
+  withOptionalEthosAuth,
+  requireScore,
+} from '@thebbz/siwe-ethos-server/nextjs';
+
+// GET /api/user - Get current user (optional auth)
+export const GET = withOptionalEthosAuth(async (req, user) => {
+  if (user) {
+    return Response.json({
+      authenticated: true,
+      profileId: user.profileId,
+      username: user.username,
+      score: user.score,
+    });
+  }
+  return Response.json({ authenticated: false });
+});
+
+// POST /api/user - Update user (requires auth)
+export const POST = withEthosAuth(async (req, user) => {
+  const body = await req.json();
+
+  // Update user preferences...
+
+  return Response.json({ success: true });
+});
+
+// DELETE /api/user - Delete account (requires high score)
+export const DELETE = withEthosAuth(
+  requireScore(1500, async (req, user) => {
+    // Only trusted users can delete accounts
+    return Response.json({ deleted: true });
+  }),
+  { secret: process.env.JWT_SECRET }
+);
+```
+
+## Dynamic Routes
+
+Works seamlessly with Next.js dynamic routes:
+
+```typescript
+// app/api/users/[id]/route.ts
+import { withEthosAuth } from '@thebbz/siwe-ethos-server/nextjs';
+
+export const GET = withEthosAuth(async (req, user, { params }) => {
+  const { id } = params;
+
+  // Check if user is accessing their own profile
+  if (user.profileId.toString() !== id) {
+    return Response.json(
+      { error: 'Forbidden' },
+      { status: 403 }
+    );
+  }
+
+  return Response.json({ profile: user.profile });
+}, { fetchProfile: true });
+```
+
+## Route Handlers Pattern
+
+Organize multiple handlers with shared config:
+
+```typescript
+// lib/auth.ts
+import { withEthosAuth, withOptionalEthosAuth } from '@thebbz/siwe-ethos-server/nextjs';
+
+const authConfig = {
+  secret: process.env.JWT_SECRET,
+  fetchProfile: true,
+};
+
+export const requireAuth = (handler) => withEthosAuth(handler, authConfig);
+export const optionalAuth = (handler) => withOptionalEthosAuth(handler, authConfig);
+
+// app/api/posts/route.ts
+import { requireAuth, optionalAuth } from '@/lib/auth';
+
+export const GET = optionalAuth(async (req, user) => {
+  // List posts (personalized if authenticated)
+});
+
+export const POST = requireAuth(async (req, user) => {
+  // Create post (requires auth)
+});
+```
+
+## Middleware vs Route Handlers
+
+For global authentication, you can also use Next.js Middleware:
+
+```typescript
+// middleware.ts
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { decodeJWT } from '@thebbz/siwe-ethos-server';
+
+export function middleware(request: NextRequest) {
+  const token = request.headers.get('authorization')?.replace('Bearer ', '');
+
+  if (!token) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  const result = decodeJWT(token);
+  if (!result.success) {
+    return NextResponse.json(
+      { error: 'Invalid token' },
+      { status: 401 }
+    );
+  }
+
+  // Add user info to headers for downstream handlers
+  const response = NextResponse.next();
+  response.headers.set('x-ethos-user', JSON.stringify(result.jwt.payload));
+  return response;
+}
+
+export const config = {
+  matcher: '/api/:path*',
+};
+```
+
+## Next Steps
+
+- [Express Middleware](/docs/server/express) - For Express.js applications
+- [JWT Utilities](/docs/server/jwt) - Low-level JWT functions

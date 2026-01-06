@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+
+# Dependencies (reinstalled in container)
+node_modules
+.pnpm-store
+
+# Build artifacts
+.next
+dist
+build
+coverage
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Docker files (prevent recursive builds)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Scripts and docs
+scripts/
+docs/
+*.md
+!README.md
+
+# Tests
+__tests__
+*.test.ts
+*.spec.ts
+
+# Certbot data
+certbot/
+
+# Temporary files
+tmp
+temp
+*.tmp

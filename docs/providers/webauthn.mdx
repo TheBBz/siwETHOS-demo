@@ -1,0 +1,450 @@
+---
+sidebar_position: 6
+---
+
+# WebAuthn Provider
+
+Server-side WebAuthn/Passkey verification for Sign in with Ethos.
+
+## Overview
+
+The WebAuthn provider implements the W3C Web Authentication API for passwordless authentication using passkeys. It handles:
+
+- **Registration verification** - Verify new passkey credentials
+- **Authentication verification** - Verify passkey sign-in attempts
+- **Challenge management** - Secure challenge generation and validation
+- **Signature verification** - Cryptographic signature validation
+
+## Installation
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos-providers
+```
+
+## Core Functions
+
+### `verifyRegistration(credential, challenge, config)`
+
+Verify a WebAuthn registration response from the browser.
+
+```typescript
+import { verifyRegistration, type WebAuthnConfig } from '@thebbz/siwe-ethos-providers/webauthn';
+
+const config: WebAuthnConfig = {
+  rpId: 'example.com',
+  rpName: 'My App',
+  origin: 'https://example.com',
+  userVerification: 'required',
+};
+
+const result = await verifyRegistration(credential, storedChallenge, config);
+
+if (result.verified) {
+  // Store the credential
+  await credentialStore.create(result.credential);
+  console.log('Registration successful:', result.credential.credentialId);
+} else {
+  console.error('Registration failed:', result.error, result.code);
+}
+```
+
+### `verifyAuthentication(credential, challenge, storedCredential, config)`
+
+Verify a WebAuthn authentication response.
+
+```typescript
+import { verifyAuthentication } from '@thebbz/siwe-ethos-providers/webauthn';
+
+const result = await verifyAuthentication(
+  credential,
+  storedChallenge,
+  storedCredential,
+  config
+);
+
+if (result.verified) {
+  // Update counter for replay protection
+  await credentialStore.update(result.credentialId, {
+    counter: result.newCounter,
+    lastUsedAt: Date.now(),
+  });
+  console.log('Authenticated user:', result.userId);
+} else {
+  console.error('Authentication failed:', result.error);
+}
+```
+
+## Challenge Management
+
+### Creating Challenges
+
+```typescript
+import {
+  createRegistrationChallenge,
+  createAuthenticationChallenge,
+  DEFAULT_CHALLENGE_TTL,
+} from '@thebbz/siwe-ethos-providers/webauthn';
+
+// Registration challenge (includes user data)
+const regChallenge = createRegistrationChallenge({
+  id: 'user_abc123',
+  name: 'john@example.com',
+  displayName: 'John Doe',
+});
+
+// Authentication challenge
+const authChallenge = createAuthenticationChallenge('user_abc123');
+
+// Store the challenge
+await challengeStore.store(regChallenge);
+```
+
+### Memory Stores (Development)
+
+For development and testing, use the built-in memory stores:
+
+```typescript
+import {
+  MemoryChallengeStore,
+  MemoryCredentialStore,
+} from '@thebbz/siwe-ethos-providers/webauthn';
+
+const challengeStore = new MemoryChallengeStore();
+const credentialStore = new MemoryCredentialStore();
+
+// Store challenge
+await challengeStore.store(challenge);
+
+// Consume challenge (retrieves and deletes)
+const storedChallenge = await challengeStore.consume(challengeValue);
+
+// Store credential
+await credentialStore.create(credential);
+
+// Find credentials
+const cred = await credentialStore.findById(credentialId);
+const userCreds = await credentialStore.findByUserId(userId);
+```
+
+:::warning Production
+For production, implement `ChallengeStore` and `CredentialStore` interfaces with persistent storage (database).
+:::
+
+## Configuration
+
+```typescript
+interface WebAuthnConfig {
+  // Relying party ID (your domain)
+  rpId: string;
+
+  // Relying party name (shown to users)
+  rpName: string;
+
+  // Expected origin(s) - can be string or array
+  origin: string | string[];
+
+  // Challenge timeout in milliseconds (default: 5 minutes)
+  challengeTimeout?: number;
+
+  // Supported algorithms (default: ES256, RS256, EdDSA)
+  supportedAlgorithms?: COSEAlgorithmIdentifier[];
+
+  // User verification requirement
+  userVerification?: 'required' | 'preferred' | 'discouraged';
+}
+```
+
+## Utility Functions
+
+### Base64URL Encoding
+
+```typescript
+import {
+  base64UrlEncode,
+  base64UrlDecode,
+  stringToBase64Url,
+  base64UrlToString,
+} from '@thebbz/siwe-ethos-providers/webauthn';
+
+// Encode bytes
+const encoded = base64UrlEncode(new Uint8Array([1, 2, 3]));
+
+// Decode to bytes
+const decoded = base64UrlDecode(encoded);
+
+// String conversion
+const str = base64UrlToString(encoded);
+```
+
+### Challenge Generation
+
+```typescript
+import {
+  generateChallenge,
+  generateUserId,
+  generateRandomBytes,
+} from '@thebbz/siwe-ethos-providers/webauthn';
+
+// Generate cryptographic challenge (32 bytes)
+const challenge = generateChallenge();
+
+// Generate user ID (16 bytes)
+const userId = generateUserId();
+
+// Generate custom random bytes
+const random = generateRandomBytes(64);
+```
+
+### WebAuthn Support Detection
+
+```typescript
+import {
+  isWebAuthnSupported,
+  isPlatformAuthenticatorAvailable,
+  isConditionalUISupported,
+} from '@thebbz/siwe-ethos-providers/webauthn';
+
+// Check basic WebAuthn support
+if (isWebAuthnSupported()) {
+  // Check for platform authenticator (Face ID, Touch ID, etc.)
+  const hasPlatform = await isPlatformAuthenticatorAvailable();
+
+  // Check for conditional UI (autofill) support
+  const hasConditional = await isConditionalUISupported();
+}
+```
+
+## Types
+
+### Stored Credential
+
+```typescript
+interface StoredCredential {
+  // Credential ID (base64url encoded)
+  credentialId: string;
+
+  // User ID this credential belongs to
+  userId: string;
+
+  // Public key (base64url encoded)
+  publicKey: string;
+
+  // Public key algorithm (-7 = ES256, -257 = RS256, -8 = EdDSA)
+  algorithm: COSEAlgorithmIdentifier;
+
+  // Signature counter for replay protection
+  counter: number;
+
+  // Supported transports
+  transports?: AuthenticatorTransport[];
+
+  // Timestamps
+  createdAt: number;
+  lastUsedAt?: number;
+
+  // Optional display name
+  name?: string;
+}
+```
+
+### Verification Results
+
+```typescript
+// Registration success
+interface RegistrationVerificationResult {
+  verified: true;
+  credential: StoredCredential;
+}
+
+// Authentication success
+interface AuthenticationVerificationResult {
+  verified: true;
+  credentialId: string;
+  userId: string;
+  newCounter: number;
+}
+
+// Failure (either flow)
+interface VerificationFailure {
+  verified: false;
+  error: string;
+  code: WebAuthnErrorCode;
+}
+```
+
+### Error Codes
+
+| Code | Meaning |
+|------|---------|
+| `challenge_mismatch` | Challenge doesn't match expected value |
+| `challenge_expired` | Challenge has expired |
+| `origin_mismatch` | Request origin doesn't match config |
+| `rp_id_mismatch` | Relying party ID hash doesn't match |
+| `user_not_present` | User presence flag not set |
+| `user_not_verified` | User verification required but not performed |
+| `invalid_signature` | Cryptographic signature verification failed |
+| `counter_invalid` | Signature counter indicates replay attack |
+| `credential_not_found` | Credential not found in store |
+| `invalid_attestation` | Attestation verification failed |
+| `unsupported_algorithm` | Public key algorithm not supported |
+| `parse_error` | Failed to parse credential data |
+
+## Complete Server Example
+
+```typescript
+import express from 'express';
+import {
+  verifyRegistration,
+  verifyAuthentication,
+  createRegistrationChallenge,
+  createAuthenticationChallenge,
+  MemoryChallengeStore,
+  MemoryCredentialStore,
+  type WebAuthnConfig,
+} from '@thebbz/siwe-ethos-providers/webauthn';
+
+const app = express();
+app.use(express.json());
+
+// Configuration
+const config: WebAuthnConfig = {
+  rpId: 'example.com',
+  rpName: 'My App',
+  origin: 'https://example.com',
+  userVerification: 'required',
+};
+
+// Stores (use database in production)
+const challengeStore = new MemoryChallengeStore();
+const credentialStore = new MemoryCredentialStore();
+
+// Start registration
+app.post('/webauthn/register/options', async (req, res) => {
+  const { username, displayName } = req.body;
+
+  const challenge = createRegistrationChallenge({
+    id: generateUserId(),
+    name: username,
+    displayName,
+  });
+
+  await challengeStore.store(challenge);
+
+  res.json({
+    challenge: challenge.challenge,
+    rp: { id: config.rpId, name: config.rpName },
+    user: challenge.userData,
+    pubKeyCredParams: [
+      { type: 'public-key', alg: -7 },  // ES256
+      { type: 'public-key', alg: -257 }, // RS256
+    ],
+    timeout: 60000,
+    authenticatorSelection: {
+      userVerification: 'required',
+      residentKey: 'required',
+    },
+    attestation: 'none',
+  });
+});
+
+// Complete registration
+app.post('/webauthn/register/verify', async (req, res) => {
+  const { credential } = req.body;
+
+  const challenge = await challengeStore.consume(credential.response.clientDataJSON);
+  if (!challenge) {
+    return res.status(400).json({ error: 'Invalid or expired challenge' });
+  }
+
+  const result = await verifyRegistration(credential, challenge, config);
+
+  if (result.verified) {
+    await credentialStore.create(result.credential);
+    res.json({ success: true, credentialId: result.credential.credentialId });
+  } else {
+    res.status(400).json({ error: result.error, code: result.code });
+  }
+});
+
+// Start authentication
+app.post('/webauthn/authenticate/options', async (req, res) => {
+  const { userId } = req.body;
+
+  const challenge = createAuthenticationChallenge(userId);
+  await challengeStore.store(challenge);
+
+  // Get user's credentials
+  const credentials = await credentialStore.findByUserId(userId);
+
+  res.json({
+    challenge: challenge.challenge,
+    rpId: config.rpId,
+    timeout: 60000,
+    userVerification: 'required',
+    allowCredentials: credentials.map(c => ({
+      type: 'public-key',
+      id: c.credentialId,
+      transports: c.transports,
+    })),
+  });
+});
+
+// Complete authentication
+app.post('/webauthn/authenticate/verify', async (req, res) => {
+  const { credential } = req.body;
+
+  const challenge = await challengeStore.consume(credential.response.clientDataJSON);
+  if (!challenge) {
+    return res.status(400).json({ error: 'Invalid or expired challenge' });
+  }
+
+  const storedCredential = await credentialStore.findById(credential.id);
+  if (!storedCredential) {
+    return res.status(400).json({ error: 'Credential not found' });
+  }
+
+  const result = await verifyAuthentication(
+    credential,
+    challenge,
+    storedCredential,
+    config
+  );
+
+  if (result.verified) {
+    await credentialStore.update(result.credentialId, {
+      counter: result.newCounter,
+      lastUsedAt: Date.now(),
+    });
+
+    // Issue session/token here
+    res.json({ success: true, userId: result.userId });
+  } else {
+    res.status(400).json({ error: result.error, code: result.code });
+  }
+});
+
+app.listen(3000);
+```
+
+## Security Considerations
+
+### Challenge Security
+- Challenges are single-use and consumed after verification
+- Default TTL is 5 minutes to prevent replay attacks
+- Use cryptographically secure random generation
+
+### Counter Validation
+- Track signature counters to detect cloned authenticators
+- Reject authentication if counter doesn't increase
+- Some authenticators (e.g., platform) may return 0
+
+### Origin Validation
+- Always validate the origin in client data
+- Supports multiple origins for different environments
+- Use HTTPS in production
+
+## Next Steps
+
+- [Passkey Component](/docs/react/passkey) - React passkey UI
+- [Server Middleware](/docs/server) - JWT verification
+- [SDK WebAuthn](/docs/sdk/api-reference#webauthn-methods) - Client SDK methods

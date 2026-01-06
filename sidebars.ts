@@ -41,6 +41,7 @@ const sidebars: SidebarsConfig = {
                 'react/index',
                 'react/installation',
                 'react/auth-modal',
+                'react/passkey',
                 'react/sign-in-button',
                 'react/hooks',
                 'react/styling',
@@ -49,10 +50,23 @@ const sidebars: SidebarsConfig = {
         },
         {
             type: 'category',
-            label: 'Providers',
+            label: 'Server Middleware',
             collapsed: false,
             items: [
+                'server/index',
+                'server/express',
+                'server/nextjs',
+                'server/jwt',
+            ],
+        },
+        {
+            type: 'category',
+            label: 'Providers',
+            collapsed: true,
+            items: [
                 'providers/index',
+                'providers/webauthn',
+                'providers/enrichment',
                 'providers/configuration',
             ],
         },

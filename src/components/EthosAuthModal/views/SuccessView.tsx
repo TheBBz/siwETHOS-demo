@@ -2,20 +2,24 @@
 
 /**
  * Success View
- * 
+ *
  * Shows successful authentication with profile info
  */
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { EthosProfile } from '../types';
 import { getScoreColor, getScoreLevel } from '../utils';
 import { SCORE_COLORS } from '../constants';
+import { PasskeyIcon } from '../icons';
 
 interface SuccessViewProps {
   profile: EthosProfile;
   address: string | null;
   onDone: () => void;
   onSignOut?: () => void;
+  onAddPasskey?: () => Promise<void>;
+  passkeySupported?: boolean;
 }
 
 export function SuccessView({
@@ -23,9 +27,29 @@ export function SuccessView({
   address,
   onDone,
   onSignOut,
+  onAddPasskey,
+  passkeySupported = false,
 }: SuccessViewProps) {
+  const [addingPasskey, setAddingPasskey] = useState(false);
+  const [passkeyAdded, setPasskeyAdded] = useState(false);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+
   const scoreColor = profile.score !== undefined ? getScoreColor(profile.score) : SCORE_COLORS.reputable;
   const scoreLevel = profile.score !== undefined ? getScoreLevel(profile.score) : '';
+
+  const handleAddPasskey = async () => {
+    if (!onAddPasskey) return;
+    setAddingPasskey(true);
+    setPasskeyError(null);
+    try {
+      await onAddPasskey();
+      setPasskeyAdded(true);
+    } catch (err) {
+      setPasskeyError(err instanceof Error ? err.message : 'Failed to add passkey');
+    } finally {
+      setAddingPasskey(false);
+    }
+  };
 
   return (
     <div className="text-center py-2">
@@ -86,6 +110,54 @@ export function SuccessView({
           )}
         </div>
       </div>
+
+      {/* Add Passkey Option */}
+      {passkeySupported && onAddPasskey && !passkeyAdded && (
+        <div className="mb-4">
+          <button
+            onClick={handleAddPasskey}
+            disabled={addingPasskey}
+            className="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0">
+              <PasskeyIcon className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <span className="font-medium text-text-primary block">
+                {addingPasskey ? 'Adding Passkey...' : 'Add Passkey'}
+              </span>
+              <span className="text-xs text-text-tertiary">
+                Sign in faster next time with Face ID or Touch ID
+              </span>
+            </div>
+            {addingPasskey ? (
+              <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            ) : (
+              <svg className="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            )}
+          </button>
+          {passkeyError && (
+            <p className="text-xs text-red-400 mt-2 text-left">{passkeyError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Passkey Added Confirmation */}
+      {passkeyAdded && (
+        <div className="mb-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+          <div className="flex items-center gap-2 text-green-400">
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+            <span className="text-sm font-medium">Passkey added successfully!</span>
+          </div>
+          <p className="text-xs text-green-400/70 mt-1">
+            You can now sign in with Face ID or Touch ID.
+          </p>
+        </div>
+      )}
 
       <button
         onClick={onDone}

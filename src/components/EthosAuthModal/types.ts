@@ -2,16 +2,17 @@
  * Type definitions for EthosAuthModal
  */
 
-export type ModalView = 
-  | 'provider-select' 
-  | 'wallet-select' 
-  | 'connecting' 
-  | 'signing' 
-  | 'verifying' 
-  | 'success' 
-  | 'error' 
+export type ModalView =
+  | 'provider-select'
+  | 'wallet-select'
+  | 'connecting'
+  | 'signing'
+  | 'verifying'
+  | 'success'
+  | 'error'
   | 'farcaster-qr'
   | 'telegram-widget'
+  | 'passkey'
   | 'discord-loading'
   | 'telegram-loading'
   | 'twitter-loading'

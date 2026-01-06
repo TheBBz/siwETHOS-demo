@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { EthosLogo, WalletIcon, FarcasterIcon, DiscordIcon, TelegramIcon, TwitterIcon } from '../icons';
+import { EthosLogo, WalletIcon, FarcasterIcon, DiscordIcon, TelegramIcon, TwitterIcon, PasskeyIcon } from '../icons';
 
 interface ProviderSelectViewProps {
   onSelectWallet: () => void;
@@ -15,6 +15,8 @@ interface ProviderSelectViewProps {
   onSelectDiscord?: () => void;
   onSelectTelegram?: () => void;
   onSelectTwitter?: () => void;
+  onSelectPasskey?: () => void;
+  passkeySupported?: boolean;
 }
 
 export function ProviderSelectView({
@@ -23,6 +25,8 @@ export function ProviderSelectView({
   onSelectDiscord,
   onSelectTelegram,
   onSelectTwitter,
+  onSelectPasskey,
+  passkeySupported = false,
 }: ProviderSelectViewProps) {
   const [isBrave, setIsBrave] = useState(false);
   const [showBraveWarning, setShowBraveWarning] = useState(false);
@@ -120,6 +124,27 @@ export function ProviderSelectView({
             <path d="M9 18l6-6-6-6" />
           </svg>
         </button>
+
+        {/* Passkey option */}
+        {onSelectPasskey && (
+          <button
+            onClick={onSelectPasskey}
+            className="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20"
+          >
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 shrink-0">
+              <PasskeyIcon className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <span className="font-medium text-text-primary block">Use Passkey</span>
+              <span className="text-xs text-text-tertiary">
+                {passkeySupported ? 'Face ID, Touch ID, or PIN' : 'Not supported on this device'}
+              </span>
+            </div>
+            <svg className="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+        )}
 
         {/* Divider */}
         <div className="flex items-center gap-3 py-2">

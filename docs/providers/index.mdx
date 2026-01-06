@@ -12,7 +12,9 @@ The providers package contains the server-side and client-side implementation fo
 
 - **Wallet providers** - Ethereum wallet authentication utilities
 - **Social providers** - OAuth and social authentication flows
+- **WebAuthn provider** - Passkey/biometric authentication
 - **Score providers** - Ethos credibility score fetching and validation
+- **Profile enrichment** - Utilities for working with Ethos profile data
 
 ## Installation
 
@@ -34,10 +36,21 @@ npm install @thebbz/siwe-ethos-providers
 - **Telegram** - Login Widget integration
 - **GitHub** - OAuth2 integration
 
+### WebAuthn Provider
+- Passkey/biometric authentication
+- Registration and authentication verification
+- Challenge management
+- Signature verification
+
 ### Ethos Provider
 - Profile fetching by various identifiers
 - Score validation
 - Attestation verification
+
+### Profile Enrichment
+- Linked accounts extraction
+- Profile statistics aggregation
+- Service attestation queries
 
 ## Usage
 
@@ -55,6 +68,9 @@ const profile = await fetchEthosProfile('address', address);
 
 ## Next Steps
 
+- [WebAuthn Provider](/docs/providers/webauthn) - Passkey authentication
+- [Profile Enrichment](/docs/providers/enrichment) - Work with profile data
 - [Configuration](/docs/providers/configuration) - Configure providers
 - [SDK Documentation](/docs/sdk/installation) - Use the client SDK
+- [Server Middleware](/docs/server) - Protect your API routes
 - [React Components](/docs/react/installation) - Use React components

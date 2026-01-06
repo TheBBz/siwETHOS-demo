@@ -11,7 +11,7 @@ Complete TypeScript type definitions for the SDK.
 ### `AuthMethod`
 
 ```typescript
-type AuthMethod = 'wallet' | 'discord' | 'telegram' | 'farcaster' | 'twitter' | 'github';
+type AuthMethod = 'wallet' | 'discord' | 'telegram' | 'farcaster' | 'twitter' | 'github' | 'passkey';
 ```
 
 Supported authentication methods.
@@ -243,6 +243,98 @@ interface FarcasterAuthParams {
 ```
 
 Parameters for Farcaster SIWF authentication.
+
+---
+
+## WebAuthn Types
+
+### `WebAuthnRegistrationOptions`
+
+```typescript
+interface WebAuthnRegistrationOptions {
+  challenge: string;
+  rp: {
+    id: string;
+    name: string;
+  };
+  user: {
+    id: string;
+    name: string;
+    displayName: string;
+  };
+  pubKeyCredParams: Array<{
+    type: 'public-key';
+    alg: number;
+  }>;
+  timeout?: number;
+  authenticatorSelection?: {
+    authenticatorAttachment?: 'platform' | 'cross-platform';
+    residentKey?: 'required' | 'preferred' | 'discouraged';
+    userVerification?: 'required' | 'preferred' | 'discouraged';
+  };
+  attestation?: 'none' | 'indirect' | 'direct';
+}
+```
+
+Options for creating a new passkey credential.
+
+---
+
+### `WebAuthnRegistrationCredential`
+
+```typescript
+interface WebAuthnRegistrationCredential {
+  id: string;
+  rawId: string;
+  type: 'public-key';
+  response: {
+    clientDataJSON: string;
+    attestationObject: string;
+  };
+}
+```
+
+Registration credential to send to server for verification.
+
+---
+
+### `WebAuthnAuthenticationOptions`
+
+```typescript
+interface WebAuthnAuthenticationOptions {
+  challenge: string;
+  rpId?: string;
+  timeout?: number;
+  userVerification?: 'required' | 'preferred' | 'discouraged';
+  allowCredentials?: Array<{
+    type: 'public-key';
+    id: string;
+    transports?: ('usb' | 'nfc' | 'ble' | 'internal' | 'hybrid')[];
+  }>;
+}
+```
+
+Options for authenticating with an existing passkey.
+
+---
+
+### `WebAuthnAuthenticationCredential`
+
+```typescript
+interface WebAuthnAuthenticationCredential {
+  id: string;
+  rawId: string;
+  type: 'public-key';
+  response: {
+    clientDataJSON: string;
+    authenticatorData: string;
+    signature: string;
+    userHandle?: string | null;
+  };
+}
+```
+
+Authentication credential to send to server for verification.
 
 ---
 

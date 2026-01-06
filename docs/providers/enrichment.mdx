@@ -1,0 +1,317 @@
+---
+sidebar_position: 7
+---
+
+# Profile Enrichment
+
+Utility functions for working with Ethos profile data.
+
+## Overview
+
+The enrichment module provides pure utility functions for extracting and formatting data from Ethos profiles:
+
+- **Linked accounts** - Get normalized linked account data
+- **Profile statistics** - Aggregate review and vouch stats
+- **Attestation queries** - Check for specific service attestations
+- **Formatting utilities** - Wei to ETH conversion, duration formatting
+
+## Installation
+
+```bash npm2yarn
+npm install @thebbz/siwe-ethos-providers
+```
+
+## Functions
+
+### `getLinkedAccounts(profile)`
+
+Extract all linked accounts from a profile's attestations in a normalized format.
+
+```typescript
+import { getLinkedAccounts } from '@thebbz/siwe-ethos-providers';
+
+const accounts = getLinkedAccounts(profile);
+// [
+//   {
+//     service: 'twitter',
+//     accountId: '1234567890',
+//     username: 'vitalik',
+//     url: 'https://twitter.com/vitalik',
+//     linkedAt: 1699123456
+//   },
+//   {
+//     service: 'discord',
+//     accountId: '987654321',
+//     username: 'vitalik#0001',
+//     url: null,
+//     linkedAt: 1699234567
+//   }
+// ]
+```
+
+### `hasAttestation(profile, service)`
+
+Check if a profile has verified a specific service.
+
+```typescript
+import { hasAttestation } from '@thebbz/siwe-ethos-providers';
+
+if (hasAttestation(profile, 'twitter')) {
+  console.log('User has verified Twitter');
+}
+
+if (hasAttestation(profile, 'discord')) {
+  // Grant Discord-only features
+}
+```
+
+### `getAttestationByService(profile, service)`
+
+Get a specific attestation by service name.
+
+```typescript
+import { getAttestationByService } from '@thebbz/siwe-ethos-providers';
+
+const twitter = getAttestationByService(profile, 'twitter');
+
+if (twitter) {
+  console.log(`Twitter username: @${twitter.extra?.username}`);
+  console.log(`Linked at: ${new Date(twitter.createdAt * 1000)}`);
+}
+```
+
+### `getAttestationsByService(profile, service)`
+
+Get all attestations for a service (handles multiple accounts).
+
+```typescript
+import { getAttestationsByService } from '@thebbz/siwe-ethos-providers';
+
+// User might have multiple Discord accounts
+const discordAccounts = getAttestationsByService(profile, 'discord');
+
+discordAccounts.forEach(account => {
+  console.log(`Discord: ${account.extra?.username}`);
+});
+```
+
+### `getProfileStats(profile)`
+
+Get formatted statistics from a profile.
+
+```typescript
+import { getProfileStats } from '@thebbz/siwe-ethos-providers';
+
+const stats = getProfileStats(profile);
+
+console.log(`Reviews: ${stats.reviewsReceived.positive} positive, ${stats.reviewsReceived.negative} negative`);
+console.log(`Vouches received: ${stats.vouches.receivedAmountEth} ETH`);
+console.log(`XP: ${stats.xp.total} (${stats.xp.streakDays} day streak)`);
+console.log(`Influence: ${stats.influence.percentile}th percentile`);
+```
+
+### `getProfileAge(profile)`
+
+Get a human-readable profile age.
+
+```typescript
+import { getProfileAge } from '@thebbz/siwe-ethos-providers';
+
+const age = getProfileAge(profile);
+// "2 years ago" or "3 months ago" or "just now"
+```
+
+### `getLinkedServices(profile)`
+
+Get a list of unique services the profile has attestations for.
+
+```typescript
+import { getLinkedServices } from '@thebbz/siwe-ethos-providers';
+
+const services = getLinkedServices(profile);
+// ['twitter', 'discord', 'farcaster']
+```
+
+### `countAccountsByService(profile)`
+
+Count linked accounts grouped by service.
+
+```typescript
+import { countAccountsByService } from '@thebbz/siwe-ethos-providers';
+
+const counts = countAccountsByService(profile);
+// { twitter: 1, discord: 2, farcaster: 1 }
+```
+
+## Utility Functions
+
+### `weiToEth(wei, precision?)`
+
+Convert Wei to ETH with specified decimal precision.
+
+```typescript
+import { weiToEth } from '@thebbz/siwe-ethos-providers';
+
+const ethAmount = weiToEth(1500000000000000000);
+// 1.5
+
+const precise = weiToEth(1234567890123456789, 6);
+// 1.234568
+```
+
+### `formatDuration(seconds)`
+
+Format seconds into a human-readable duration.
+
+```typescript
+import { formatDuration } from '@thebbz/siwe-ethos-providers';
+
+formatDuration(3600);    // "1 hour ago"
+formatDuration(86400);   // "1 day ago"
+formatDuration(604800);  // "1 week ago"
+formatDuration(30);      // "just now"
+```
+
+## Types
+
+### LinkedAccount
+
+```typescript
+interface LinkedAccount {
+  /** Service name (e.g., 'twitter', 'discord') */
+  service: string;
+
+  /** Account identifier on the service */
+  accountId: string;
+
+  /** Username if available */
+  username: string | null;
+
+  /** URL to the account if available */
+  url: string | null;
+
+  /** When the account was linked (unix timestamp) */
+  linkedAt: number;
+}
+```
+
+### ProfileStats
+
+```typescript
+interface ProfileStats {
+  reviewsReceived: {
+    positive: number;
+    neutral: number;
+    negative: number;
+    total: number;
+  };
+
+  vouches: {
+    givenCount: number;
+    givenAmountEth: number;
+    receivedCount: number;
+    receivedAmountEth: number;
+  };
+
+  xp: {
+    total: number;
+    streakDays: number;
+  };
+
+  influence: {
+    factor: number;
+    percentile: number;
+  };
+}
+```
+
+## Usage Examples
+
+### Profile Card Component
+
+```tsx
+import {
+  getLinkedAccounts,
+  getProfileStats,
+  getProfileAge,
+  hasAttestation
+} from '@thebbz/siwe-ethos-providers';
+
+function ProfileCard({ profile }) {
+  const accounts = getLinkedAccounts(profile);
+  const stats = getProfileStats(profile);
+  const age = getProfileAge(profile);
+
+  return (
+    <div className="profile-card">
+      <h2>{profile.name}</h2>
+      <p>Member for {age}</p>
+
+      <div className="stats">
+        <span>Score: {profile.score}</span>
+        <span>XP: {stats.xp.total}</span>
+        <span>Reviews: {stats.reviewsReceived.total}</span>
+      </div>
+
+      <div className="linked-accounts">
+        {accounts.map(account => (
+          <a key={account.accountId} href={account.url}>
+            {account.service}: @{account.username}
+          </a>
+        ))}
+      </div>
+
+      <div className="badges">
+        {hasAttestation(profile, 'twitter') && <Badge>Twitter Verified</Badge>}
+        {hasAttestation(profile, 'ens') && <Badge>ENS Owner</Badge>}
+      </div>
+    </div>
+  );
+}
+```
+
+### Access Control by Attestation
+
+```typescript
+import { hasAttestation, getProfileStats } from '@thebbz/siwe-ethos-providers';
+
+function canAccessFeature(profile, feature) {
+  switch (feature) {
+    case 'twitter-giveaway':
+      return hasAttestation(profile, 'twitter');
+
+    case 'discord-community':
+      return hasAttestation(profile, 'discord');
+
+    case 'premium-features':
+      const stats = getProfileStats(profile);
+      return stats.vouches.receivedAmountEth >= 0.1;
+
+    default:
+      return false;
+  }
+}
+```
+
+### Aggregate Multiple Profiles
+
+```typescript
+import { getProfileStats } from '@thebbz/siwe-ethos-providers';
+
+function aggregateStats(profiles) {
+  return profiles.reduce((acc, profile) => {
+    const stats = getProfileStats(profile);
+    return {
+      totalReviews: acc.totalReviews + stats.reviewsReceived.total,
+      totalVouchValue: acc.totalVouchValue + stats.vouches.receivedAmountEth,
+      totalXP: acc.totalXP + stats.xp.total,
+    };
+  }, { totalReviews: 0, totalVouchValue: 0, totalXP: 0 });
+}
+```
+
+## Next Steps
+
+- [Providers Overview](/docs/providers) - Available authentication providers
+- [Score Validation](/docs/sdk/score-validation) - Understand credibility levels
+- [Server Middleware](/docs/server) - Protect routes by score
