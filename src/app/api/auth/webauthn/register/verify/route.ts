@@ -9,8 +9,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRegistration, RegistrationVerificationResult } from '@thebbz/siwe-ethos-providers';
 import { challengeStore, credentialStore, rpConfig } from '@/lib/webauthn-stores';
+import { withCors, corsOptionsResponse } from '@/lib/cors';
+
+export async function OPTIONS(request: NextRequest) {
+  return corsOptionsResponse(request.headers.get('origin'));
+}
 
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get('origin');
   try {
     const body = await request.json();
     const { credential, userId, username, ethosProfile } = body;
@@ -24,10 +30,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (!credential || !userId) {
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: 'Credential and userId are required' },
         { status: 400 }
-      );
+      ), origin);
     }
 
     // Get the stored challenge using the challenge from clientDataJSON
@@ -41,10 +47,10 @@ export async function POST(request: NextRequest) {
     const storedChallenge = await challengeStore.consume(challenge);
 
     if (!storedChallenge) {
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: 'Challenge not found or expired' },
         { status: 400 }
-      );
+      ), origin);
     }
 
     // Build config object
@@ -59,10 +65,10 @@ export async function POST(request: NextRequest) {
 
     if (!result.verified || !('credential' in result)) {
       const errorResult = result as { error?: string };
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: errorResult.error || 'Verification failed' },
         { status: 400 }
-      );
+      ), origin);
     }
 
     // Type assertion after verification
@@ -78,7 +84,7 @@ export async function POST(request: NextRequest) {
     };
     await credentialStore.create(credentialToStore);
 
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       verified: true,
       message: 'Passkey registered successfully',
       credentialId: verifiedResult.credential.credentialId,
@@ -87,12 +93,12 @@ export async function POST(request: NextRequest) {
         profileId: userId.replace('ethos_', ''),
         username: username,
       },
-    });
+    }), origin);
   } catch (error) {
     console.error('WebAuthn register verify error:', error);
-    return NextResponse.json(
+    return withCors(NextResponse.json(
       { error: 'Failed to verify registration' },
       { status: 500 }
-    );
+    ), origin);
   }
 }

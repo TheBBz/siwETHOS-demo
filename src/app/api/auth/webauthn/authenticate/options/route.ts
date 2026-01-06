@@ -12,8 +12,14 @@ import {
   buildAuthenticationOptions,
 } from '@thebbz/siwe-ethos-providers';
 import { challengeStore, rpConfig } from '@/lib/webauthn-stores';
+import { withCors, corsOptionsResponse } from '@/lib/cors';
 
-export async function POST(_request: NextRequest) {
+export async function OPTIONS(request: NextRequest) {
+  return corsOptionsResponse(request.headers.get('origin'));
+}
+
+export async function POST(request: NextRequest) {
+  const origin = request.headers.get('origin');
   try {
     // Create challenge (returns StoredChallenge object)
     const storedChallenge = createAuthenticationChallenge(
@@ -33,15 +39,15 @@ export async function POST(_request: NextRequest) {
       allowCredentials: [], // Empty = discoverable credentials
     });
 
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       options,
       sessionId: storedChallenge.challenge, // Use challenge as session ID
-    });
+    }), origin);
   } catch (error) {
     console.error('WebAuthn authenticate options error:', error);
-    return NextResponse.json(
+    return withCors(NextResponse.json(
       { error: 'Failed to generate authentication options' },
       { status: 500 }
-    );
+    ), origin);
   }
 }

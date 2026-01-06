@@ -11,9 +11,9 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
-      - NEXT_PUBLIC_RP_ID=thebbz.xyz
+      - NEXT_PUBLIC_RP_ID=ethos.thebbz.xyz
       - NEXT_PUBLIC_RP_NAME=Sign in with Ethos
-      - NEXT_PUBLIC_RP_ORIGIN=https://ethos.thebbz.xyz,https://api.thebbz.xyz
+      - NEXT_PUBLIC_RP_ORIGIN=https://ethos.thebbz.xyz
     env_file:
       - .env.production
     depends_on:

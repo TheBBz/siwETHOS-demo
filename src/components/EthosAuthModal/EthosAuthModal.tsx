@@ -35,6 +35,9 @@ import type { TelegramUser } from './views';
 // Telegram bot username from env (will be fetched from API)
 const TELEGRAM_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'siwETHOS_bot';
 
+// WebAuthn API base URL - use external API server for passkey operations
+const WEBAUTHN_API_URL = process.env.NEXT_PUBLIC_WEBAUTHN_API_URL || '';
+
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -563,9 +566,10 @@ export function EthosAuthModal({
 
     try {
       // Get authentication options
-      const optionsRes = await fetch('/api/auth/webauthn/authenticate/options', {
+      const optionsRes = await fetch(`${WEBAUTHN_API_URL}/api/auth/webauthn/authenticate/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
 
       if (!optionsRes.ok) {
@@ -609,9 +613,10 @@ export function EthosAuthModal({
       };
 
       // Verify with server
-      const verifyRes = await fetch('/api/auth/webauthn/authenticate/verify', {
+      const verifyRes = await fetch(`${WEBAUTHN_API_URL}/api/auth/webauthn/authenticate/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           credential: serializedCredential,
           sessionId,
@@ -644,9 +649,10 @@ export function EthosAuthModal({
 
     try {
       // Get registration options
-      const optionsRes = await fetch('/api/auth/webauthn/register/options', {
+      const optionsRes = await fetch(`${WEBAUTHN_API_URL}/api/auth/webauthn/register/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ username, ethosProfileId }),
       });
 
@@ -704,9 +710,10 @@ export function EthosAuthModal({
       };
 
       // Verify with server
-      const verifyRes = await fetch('/api/auth/webauthn/register/verify', {
+      const verifyRes = await fetch(`${WEBAUTHN_API_URL}/api/auth/webauthn/register/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           credential: serializedCredential,
           userId,

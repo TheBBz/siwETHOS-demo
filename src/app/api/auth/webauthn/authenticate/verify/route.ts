@@ -10,37 +10,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthentication } from '@thebbz/siwe-ethos-providers';
 import { challengeStore, credentialStore, rpConfig } from '@/lib/webauthn-stores';
 import { getProfileById } from '@/lib/ethos';
+import { withCors, corsOptionsResponse } from '@/lib/cors';
+
+export async function OPTIONS(request: NextRequest) {
+  return corsOptionsResponse(request.headers.get('origin'));
+}
 
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get('origin');
   try {
     const body = await request.json();
     const { credential, sessionId } = body;
 
     if (!credential || !sessionId) {
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: 'Credential and sessionId are required' },
         { status: 400 }
-      );
+      ), origin);
     }
 
     // Get the stored credential
     const storedCredential = await credentialStore.findById(credential.id);
 
     if (!storedCredential) {
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: 'Credential not found. Please register a passkey first.' },
         { status: 400 }
-      );
+      ), origin);
     }
 
     // Get the stored challenge using sessionId (which is the challenge)
     const storedChallenge = await challengeStore.consume(sessionId);
 
     if (!storedChallenge) {
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: 'Challenge not found or expired' },
         { status: 400 }
-      );
+      ), origin);
     }
 
     // Build config object
@@ -71,10 +77,10 @@ export async function POST(request: NextRequest) {
     if (!result.verified) {
       const errorResult = result as { error?: string; code?: string };
       console.log('Verification failed:', errorResult);
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: errorResult.error || 'Authentication failed' },
         { status: 400 }
-      );
+      ), origin);
     }
 
     // Update counter if verification succeeded (newCounter is at top level)
@@ -118,7 +124,7 @@ export async function POST(request: NextRequest) {
       .replace(/\//g, '_')
       .replace(/=+$/, '');
 
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       verified: true,
       code,
       profile: {
@@ -131,12 +137,12 @@ export async function POST(request: NextRequest) {
           ? `https://ethos.network/profile/${ethosProfile.username}`
           : null,
       },
-    });
+    }), origin);
   } catch (error) {
     console.error('WebAuthn authenticate verify error:', error);
-    return NextResponse.json(
+    return withCors(NextResponse.json(
       { error: 'Failed to verify authentication' },
       { status: 500 }
-    );
+    ), origin);
   }
 }

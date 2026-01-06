@@ -13,17 +13,23 @@ import {
   generateUserId,
 } from '@thebbz/siwe-ethos-providers';
 import { challengeStore, credentialStore, rpConfig } from '@/lib/webauthn-stores';
+import { withCors, corsOptionsResponse } from '@/lib/cors';
+
+export async function OPTIONS(request: NextRequest) {
+  return corsOptionsResponse(request.headers.get('origin'));
+}
 
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get('origin');
   try {
     const body = await request.json();
     const { username, ethosProfileId } = body;
 
     if (!username || typeof username !== 'string') {
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: 'Username is required' },
         { status: 400 }
-      );
+      ), origin);
     }
 
     // Generate a unique user ID (or use ethosProfileId if provided)
@@ -66,15 +72,15 @@ export async function POST(request: NextRequest) {
       timeout: 120000,
     });
 
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       options,
       userId,
-    });
+    }), origin);
   } catch (error) {
     console.error('WebAuthn register options error:', error);
-    return NextResponse.json(
+    return withCors(NextResponse.json(
       { error: 'Failed to generate registration options' },
       { status: 500 }
-    );
+    ), origin);
   }
 }
