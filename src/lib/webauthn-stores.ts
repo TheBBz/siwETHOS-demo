@@ -221,8 +221,11 @@ export const credentialStore = stores.credentialStore;
 // Relying Party Configuration
 // ============================================================================
 
+// For cross-subdomain WebAuthn, RP ID must be the parent domain
+// Frontend: ethos.thebbz.xyz, Backend: api.thebbz.xyz -> RP ID: thebbz.xyz
 export const rpConfig = {
   id: process.env.NEXT_PUBLIC_RP_ID || 'localhost',
   name: process.env.NEXT_PUBLIC_RP_NAME || 'Sign in with Ethos',
-  origin: process.env.NEXT_PUBLIC_RP_ORIGIN || 'http://localhost:3000',
+  // Accept requests from multiple origins (frontend + backend domains)
+  origin: process.env.NEXT_PUBLIC_RP_ORIGIN?.split(',').map(o => o.trim()) || ['http://localhost:3000'],
 };
