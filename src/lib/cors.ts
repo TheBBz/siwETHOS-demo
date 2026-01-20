@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 
 const ALLOWED_ORIGINS = [
   'https://ethos.thebbz.xyz',
+  'https://repcanvas.thebbz.xyz',
   'http://localhost:3000',
   'http://localhost:3001',
 ];
