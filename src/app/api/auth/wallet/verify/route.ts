@@ -10,6 +10,7 @@ import { parseSIWEMessage, verifySIWEMessage, isValidEthereumAddress } from '@th
 import { getStorage } from '@/lib/storage';
 import { getProfileByAddress, EthosProfileNotFoundError } from '@/lib/ethos';
 import { generateAuthCode, type AuthCodeData } from '@/lib/auth';
+import { withCors, corsOptionsResponse } from '@/lib/cors';
 
 interface VerifyRequestBody {
   message: string;
@@ -19,33 +20,45 @@ interface VerifyRequestBody {
   state?: string;
 }
 
+export async function OPTIONS(request: NextRequest) {
+  return corsOptionsResponse(request.headers.get('origin'));
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as VerifyRequestBody;
     const { message, signature, address, redirect_uri, state } = body;
 
+    const origin = request.headers.get('origin');
+
     // Validate required fields
     if (!message || !signature || !address) {
-      return NextResponse.json(
-        { error: 'Missing required fields: message, signature, address' },
-        { status: 400 }
+      return withCors(
+        NextResponse.json(
+          { error: 'Missing required fields: message, signature, address' },
+          { status: 400 }
+        ),
+        origin
       );
     }
 
     // Validate address format
     if (!isValidEthereumAddress(address)) {
-      return NextResponse.json(
-        { error: 'Invalid Ethereum address format' },
-        { status: 400 }
+      return withCors(
+        NextResponse.json(
+          { error: 'Invalid Ethereum address format' },
+          { status: 400 }
+        ),
+        origin
       );
     }
 
     // Parse the SIWE message
     const parsedMessage = parseSIWEMessage(message);
     if (!parsedMessage) {
-      return NextResponse.json(
-        { error: 'Invalid SIWE message format' },
-        { status: 400 }
+      return withCors(
+        NextResponse.json({ error: 'Invalid SIWE message format' }, { status: 400 }),
+        origin
       );
     }
 
@@ -55,18 +68,18 @@ export async function POST(request: NextRequest) {
     const nonceData = await storage.get<{ expiresAt: string }>(nonceKey);
 
     if (!nonceData) {
-      return NextResponse.json(
-        { error: 'Invalid or expired nonce' },
-        { status: 400 }
+      return withCors(
+        NextResponse.json({ error: 'Invalid or expired nonce' }, { status: 400 }),
+        origin
       );
     }
 
     // Check nonce expiration
     if (new Date(nonceData.expiresAt) < new Date()) {
       await storage.delete(nonceKey);
-      return NextResponse.json(
-        { error: 'Nonce has expired' },
-        { status: 400 }
+      return withCors(
+        NextResponse.json({ error: 'Nonce has expired' }, { status: 400 }),
+        origin
       );
     }
 
@@ -82,9 +95,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (!verifyResult.success) {
-      return NextResponse.json(
-        { error: verifyResult.error || 'Signature verification failed' },
-        { status: 400 }
+      return withCors(
+        NextResponse.json(
+          { error: verifyResult.error || 'Signature verification failed' },
+          { status: 400 }
+        ),
+        origin
       );
     }
 
@@ -92,9 +108,9 @@ export async function POST(request: NextRequest) {
     if (parsedMessage.expirationTime) {
       const expirationDate = new Date(parsedMessage.expirationTime);
       if (expirationDate < new Date()) {
-        return NextResponse.json(
-          { error: 'SIWE message has expired' },
-          { status: 400 }
+        return withCors(
+          NextResponse.json({ error: 'SIWE message has expired' }, { status: 400 }),
+          origin
         );
       }
     }
@@ -105,12 +121,15 @@ export async function POST(request: NextRequest) {
       ethosUser = await getProfileByAddress(address);
     } catch (error) {
       if (error instanceof EthosProfileNotFoundError) {
-        return NextResponse.json(
-          {
-            error: 'no_ethos_profile',
-            error_description: 'No Ethos profile found for this wallet address. Create a profile at ethos.network',
-          },
-          { status: 404 }
+        return withCors(
+          NextResponse.json(
+            {
+              error: 'no_ethos_profile',
+              error_description: 'No Ethos profile found for this wallet address. Create a profile at ethos.network',
+            },
+            { status: 404 }
+          ),
+          origin
         );
       }
       throw error;
@@ -132,30 +151,31 @@ export async function POST(request: NextRequest) {
 
     // Return in the format expected by the SDK
     // The SDK expects access_token format with user object
-    return NextResponse.json({
-      access_token: code,
-      token_type: 'Bearer',
-      expires_in: 86400,
-      user: {
-        sub: `ethos:${ethosUser.profileId}`,
-        name: ethosUser.displayName,
-        // Use Ethos avatar, not provider avatar
-        picture: ethosUser.avatarUrl,
-        ethos_profile_id: ethosUser.profileId,
-        ethos_username: ethosUser.username,
-        ethos_score: ethosUser.score,
-        ethos_status: ethosUser.status,
-        ethos_attestations: ethosUser.attestations?.map(a => `${a.service}:${a.account}`) || [],
-        wallet_address: verifyResult.address,
-        // Include profile URL for "View profile" link
-        profile_url: ethosUser.links?.profile || `https://ethos.network/u/${ethosUser.username || ethosUser.profileId}`,
-      },
-    });
+    return withCors(
+      NextResponse.json({
+        access_token: code,
+        token_type: 'Bearer',
+        expires_in: 86400,
+        user: {
+          sub: `ethos:${ethosUser.profileId}`,
+          name: ethosUser.displayName,
+          picture: ethosUser.avatarUrl,
+          ethos_profile_id: ethosUser.profileId,
+          ethos_username: ethosUser.username,
+          ethos_score: ethosUser.score,
+          ethos_status: ethosUser.status,
+          ethos_attestations: ethosUser.attestations?.map(a => `${a.service}:${a.account}`) || [],
+          wallet_address: verifyResult.address,
+          profile_url: ethosUser.links?.profile || `https://ethos.network/u/${ethosUser.username || ethosUser.profileId}`,
+        },
+      }),
+      origin
+    );
   } catch (error) {
     console.error('[Wallet Verify] Error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    return withCors(
+      NextResponse.json({ error: 'Internal server error' }, { status: 500 }),
+      request.headers.get('origin')
     );
   }
 }
